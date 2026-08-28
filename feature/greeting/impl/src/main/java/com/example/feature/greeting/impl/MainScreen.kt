@@ -33,6 +33,7 @@ import com.example.feature.greeting.impl.components.NavigationTab
 import com.example.feature.greeting.impl.components.ProductionBottomNavBar
 import com.example.feature.greeting.impl.components.ProductionTopNavBar
 import com.example.feature.greeting.impl.screens.CanvasScreen
+import com.example.feature.greeting.impl.screens.SettingsMenuScreen
 import com.example.feature.greeting.impl.screens.SettingsScreen
 import com.example.feature.greeting.impl.screens.TokensScreen
 import com.example.feature.greeting.impl.screens.TypeStudioScreen
@@ -52,6 +53,7 @@ fun MainScreen(
     val isSidebarOpen by viewModel.isSidebarOpen.collectAsState()
     val isInspectorVisible by viewModel.isInspectorVisible.collectAsState()
     val typographyChoice by viewModel.typographyChoice.collectAsState()
+    val settingsLevel by viewModel.settingsLevel.collectAsState()
 
     val animatedBg by animateColorAsState(
         targetValue = currentTheme.background,
@@ -83,6 +85,11 @@ fun MainScreen(
         label = "main_elevation"
     )
 
+    // Settings levels step back first; the sidebar (registered later, thus
+    // dispatched first when both are active) still takes priority when open.
+    BackHandler(enabled = settingsLevel != SettingsLevel.NONE) {
+        viewModel.backSettings()
+    }
     BackHandler(enabled = isSidebarOpen) {
         viewModel.closeSidebar()
     }
@@ -115,35 +122,40 @@ fun MainScreen(
                 topBar = {
                     ProductionTopNavBar(
                         currentTheme = currentTheme,
-                        onOpenSidebar = viewModel::toggleSidebar
+                        onOpenSidebar = viewModel::toggleSidebar,
+                        pageTitle = when (settingsLevel) {
+                            SettingsLevel.MENU -> "Settings"
+                            SettingsLevel.PAGE -> "Appearance & Themes"
+                            SettingsLevel.NONE -> null
+                        },
+                        onBack = { viewModel.backSettings() }
                     )
                 },
                 bottomBar = {
-                    ProductionBottomNavBar(
-                        currentTab = currentTab,
-                        onTabSelected = { viewModel.selectTab(it) },
-                        currentTheme = currentTheme
-                    )
+                    // Bottom navigation belongs to the main tabs only;
+                    // settings menu / settings pages render without it.
+                    if (settingsLevel == SettingsLevel.NONE) {
+                        ProductionBottomNavBar(
+                            currentTab = currentTab,
+                            onTabSelected = {
+                                viewModel.selectTab(it)
+                                viewModel.exitSettings()
+                            },
+                            currentTheme = currentTheme
+                        )
+                    }
                 },
                 modifier = Modifier.fillMaxSize()
             ) { innerPadding ->
-                when (currentTab) {
-                    NavigationTab.CANVAS -> CanvasScreen(
-                        viewModel = viewModel,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                    NavigationTab.TYPOGRAPHY -> TypeStudioScreen(
+                // Settings flow renders inside the Scaffold content area so the
+                // global top nav bar (Scaffold topBar) persists on every level.
+                when (settingsLevel) {
+                    SettingsLevel.MENU -> SettingsMenuScreen(
                         currentTheme = currentTheme,
-                        selectedTypography = typographyChoice,
-                        onTypographyChange = viewModel::selectTypography,
+                        onOpenAppearance = viewModel::openAppearanceSettings,
                         modifier = Modifier.padding(innerPadding)
                     )
-                    NavigationTab.TOKENS -> TokensScreen(
-                        currentTheme = currentTheme,
-                        onOpenInspector = viewModel::showInspector,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                    NavigationTab.SETTINGS -> SettingsScreen(
+                    SettingsLevel.PAGE -> SettingsScreen(
                         currentTheme = currentTheme,
                         onThemeChange = viewModel::selectTheme,
                         selectedTypography = typographyChoice,
@@ -152,6 +164,25 @@ fun MainScreen(
                         onReplaySplash = onReplaySplash,
                         modifier = Modifier.padding(innerPadding)
                     )
+                    SettingsLevel.NONE -> when (currentTab) {
+                        NavigationTab.CANVAS -> CanvasScreen(
+                            viewModel = viewModel,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                        NavigationTab.TYPOGRAPHY -> TypeStudioScreen(
+                            currentTheme = currentTheme,
+                            selectedTypography = typographyChoice,
+                            onTypographyChange = viewModel::selectTypography,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                        NavigationTab.TOKENS -> TokensScreen(
+                            currentTheme = currentTheme,
+                            onOpenInspector = viewModel::showInspector,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                        // 4th tab is intentionally blank (settings moved to the sidebar flow)
+                        NavigationTab.SETTINGS -> Box(modifier = Modifier.fillMaxSize())
+                    }
                 }
             }
         }
@@ -179,7 +210,7 @@ fun MainScreen(
         ) {
             AppSidebarContent(
                 currentTheme = currentTheme,
-                onOpenSettings = { viewModel.selectTab(NavigationTab.SETTINGS) },
+                onOpenSettings = { viewModel.openSettingsMenu() },
                 onCloseDrawer = viewModel::closeSidebar,
                 modifier = Modifier.fillMaxSize()
             )

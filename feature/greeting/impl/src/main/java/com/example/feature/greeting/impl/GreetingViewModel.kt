@@ -31,6 +31,13 @@ data class CustomGreetingState(
 )
 
 /**
+ * Content-level settings navigation inside the main Scaffold content area
+ * (the global top nav bar stays visible on every level):
+ * NONE (normal tabs) -> MENU (settings menu list) -> PAGE (appearance settings).
+ */
+enum class SettingsLevel { NONE, MENU, PAGE }
+
+/**
  * Single ViewModel backing the greeting feature (MVVM).
  *
  * Owns navigation-independent UI state (theme, typography, tab, sidebar,
@@ -80,6 +87,9 @@ class GreetingViewModel @Inject constructor(
 
     private val _customGreeting = MutableStateFlow(CustomGreetingState())
     val customGreeting: StateFlow<CustomGreetingState> = _customGreeting.asStateFlow()
+
+    private val _settingsLevel = MutableStateFlow(SettingsLevel.NONE)
+    val settingsLevel: StateFlow<SettingsLevel> = _settingsLevel.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -143,5 +153,27 @@ class GreetingViewModel @Inject constructor(
     /** Transient primary-color override from the CSS inspector (not persisted). */
     fun overridePrimary(color: Color) {
         _primaryOverride.value = color
+    }
+
+    fun openSettingsMenu() {
+        _settingsLevel.value = SettingsLevel.MENU
+    }
+
+    fun openAppearanceSettings() {
+        _settingsLevel.value = SettingsLevel.PAGE
+    }
+
+    /** Steps one settings level back (PAGE -> MENU -> NONE). */
+    fun backSettings() {
+        when (_settingsLevel.value) {
+            SettingsLevel.PAGE -> _settingsLevel.value = SettingsLevel.MENU
+            SettingsLevel.MENU -> _settingsLevel.value = SettingsLevel.NONE
+            SettingsLevel.NONE -> Unit
+        }
+    }
+
+    /** Exits the settings flow entirely (e.g. when a bottom-nav tab is tapped). */
+    fun exitSettings() {
+        _settingsLevel.value = SettingsLevel.NONE
     }
 }

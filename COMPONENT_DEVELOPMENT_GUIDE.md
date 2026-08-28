@@ -241,7 +241,12 @@ Column(modifier = modifier.fillMaxWidth().background(currentTheme.background).st
 }
 ```
 
-顶栏已极简化：**仅保留左侧侧边栏开关按钮与底部 1px 分割线**。原 Monogram 徽标、HELLO 标题、呼吸脉冲药丸、右侧主题家族徽标均已移除；设置入口在侧边栏底部，主题切换在设置页/画布快切条完成。
+顶栏为**双形态**设计（`pageTitle` 参数驱动）：
+
+- **主界面形态**（`settingsLevel == NONE`）：仅左侧侧边栏开关按钮（28dp 纯 Menu 图标，无底色/边框/水波纹，`testTag = "top_nav_sidebar_btn"`）。
+- **子页面形态**（设置流程内）：左侧按钮自动变为**返回键**（ArrowBack，`testTag = "top_nav_back_btn"`，点击 → `backSettings()`），**居中显示当前页面标题**——菜单页显示 "Settings"，外观设置页显示对应菜单名 "Appearance & Themes"。
+
+两种形态均保留底部 1px 分割线。原 Monogram 徽标、HELLO 标题、呼吸脉冲药丸、右侧主题家族徽标均已移除；设置入口在侧边栏底部，主题切换在设置页/画布快切条完成。
 
 **粗细调整**：
 - **整条栏高度**：改 `Row` 的 `height(44.dp)`——细：36~40dp；粗：56/64dp（Material 3 标准），同步微调内部按钮（28dp）。
@@ -271,17 +276,17 @@ val sidebarOffset by animateDpAsState(if (isSidebarOpen) 0.dp else -sidebarWidth
 
 1. 底层：295dp 位移槽内的 `AppSidebarContent`（内容自身声明 `width(300.dp)`，5dp 溢出被裁剪——调槽宽时两处需同步）。
 2. 表层：被推开的主画布（`offset(pushOffset)` + 动态圆角/阴影/1dp 描边）。
-3. 收回机制（3 种）：① **系统返回键/手势**（`BackHandler(enabled = isSidebarOpen)` 优先拦截，只收侧边栏不退出页面）；② **点击侧边栏以外的区域**（全透明拦截层，`testTag = "sidebar_outside_dismiss"`，无视觉遮罩；拦截层通过 `padding(start = sidebarWidth)` 在几何上**只覆盖侧边栏右侧区域**——若做成全屏，点在侧边栏非交互区域的事件未被消费时会穿透到拦截层导致误收回）；③ **点击底部设置入口**（跳转设置页后自动收回）。层级顺序：主画布（底）→ 外部点击拦截层（中，仅展开时存在）→ 侧边栏（顶）。
+3. 收回机制（3 种）：① **系统返回键/手势**（`BackHandler(enabled = isSidebarOpen)` 优先拦截，只收侧边栏不退出页面）；② **点击侧边栏以外的区域**（全透明拦截层，`testTag = "sidebar_outside_dismiss"`，无视觉遮罩；拦截层通过 `padding(start = sidebarWidth)` 在几何上**只覆盖侧边栏右侧区域**——若做成全屏，点在侧边栏非交互区域的事件未被消费时会穿透到拦截层导致误收回）；③ **点击底部设置入口**（打开设置菜单页后自动收回）。层级顺序：主画布（底）→ 外部点击拦截层（中，仅展开时存在）→ 侧边栏（顶）。
 
 ### 7.3 侧边栏内容（AppSidebarContent）
 
-极简两段式结构：**顶部工作区头部**（34dp 衬线斜体 "H" 头像 + "Hello Studio" + PRO 徽标 + "Design Systems Lab" 副标题，无关闭按钮），中间弹性留白，**底部固定设置入口**（齿轮图标 + "Settings"，点击跳转 SETTINGS 标签并自动收回侧边栏——该入口从顶栏迁移而来）。原导航组、调色板快切、快捷工具与引擎页脚均已移除；标签切换由底部导航栏承担，主题切换在设置页/画布快切条完成。
+极简两段式结构：**顶部工作区头部**（34dp 衬线斜体 "H" 头像 + "Hello Studio" + PRO 徽标 + "Design Systems Lab" 副标题，无关闭按钮），中间弹性留白，**底部固定设置入口**（齿轮图标 + "Settings"，点击打开**设置菜单列表页**并自动收回侧边栏——该入口从顶栏迁移而来）。原导航组、调色板快切、快捷工具与引擎页脚均已移除；标签切换由底部导航栏承担，主题切换在设置页/画布快切条完成。
 
 ---
 
 ## 8. 底部导航栏 (BottomNavBar)
 
-`components/BottomNavBar.kt`（`ProductionBottomNavBar`）：4 标签（CANVAS/TYPOGRAPHY/TOKENS/SETTINGS），激活态为微胶囊背景 + 颜色过渡，`.navigationBarsPadding()` 避让手势条。选中回调在 `MainScreen` 中同时关闭侧边栏。
+`components/BottomNavBar.kt`（`ProductionBottomNavBar`）：4 标签（CANVAS/TYPOGRAPHY/TOKENS/SETTINGS），激活态为微胶囊背景 + 颜色过渡，`.navigationBarsPadding()` 避让手势条。选中回调在 `MainScreen` 中同时关闭侧边栏并退出设置流程（`exitSettings()`，防御性保留）。**底部导航栏仅在主界面（`settingsLevel == NONE`）显示**——设置菜单页与设置页不接入底部导航；**第 4 标签（SETTINGS）内容区为空白占位**，设置功能已整体迁移至侧边栏设置流程。
 
 ---
 
@@ -321,8 +326,18 @@ val sidebarOffset by animateDpAsState(if (isSidebarOpen) 0.dp else -sidebarWidth
 ### 11.2 令牌面板（TokensScreen）
 令牌搜索过滤 + 色卡矩阵（点击复制 Hex，Toast 反馈）+ 令牌化组件演练场 + 审查器入口。
 
-### 11.3 设置页（SettingsScreen）
-明暗双卡选择器、12 调色板列表（当前选中高亮）、3 排版引擎、CSS 导出（复制 `toCssString()`）、审查器入口、系统信息与**启动页重播**（经 `onReplaySplash` → Nav3 `replace(Splash)`）。
+### 11.3 设置流程（菜单页 + 外观设置页）
+
+设置采用**内容区层级导航**（遵循官方 Scaffold 模式：`topBar` 定义在 Scaffold 层持久存在，仅 `content` 区切换页面，全程不新增顶栏）。`GreetingViewModel.settingsLevel` 三级状态机：
+
+```
+NONE（正常标签）→ MENU（设置菜单列表）→ PAGE（外观设置页）
+```
+
+- **入口**：侧边栏底部 "Settings" → `openSettingsMenu()`。
+- **菜单页（SettingsMenuScreen）**：当前唯一入口 **"Appearance & Themes"**（外观与主题：明暗模式、调色板、排版与 CSS 令牌），点击 → `openAppearanceSettings()`。
+- **外观设置页（SettingsScreen）**：明暗双卡选择器、12 调色板列表（当前选中高亮）、3 排版引擎、CSS 导出（复制 `toCssString()`）、审查器入口、系统信息与**启动页重播**（经 `onReplaySplash` → Nav3 `replace(Splash)`）。
+- **返回**：系统返回键/手势逐级回退（`BackHandler` → `backSettings()`：PAGE→MENU→NONE）。设置层级内**不显示底部导航栏**（Scaffold `bottomBar` 仅在 NONE 层级渲染），页面视觉只保留全局顶栏 + 内容区。
 
 ### 11.4 CSS 变量审查器（CssVariableInspectorSheet）
 全局 `ModalBottomSheet`，双标签：
