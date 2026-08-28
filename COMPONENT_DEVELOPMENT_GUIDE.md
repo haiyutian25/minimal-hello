@@ -218,7 +218,7 @@ val animatedBg by animateColorAsState(
 )
 ```
 
-主题家族识别采用 `themeId` 前缀匹配（`editorial/geist/linear/shadcn/notion`，兜底 `Braun`），在 CanvasScreen 与 TopNavBar/侧边栏中按需使用；**新增主题家族时记得同步前缀分支**。
+主题家族识别采用 `themeId` 前缀匹配（`editorial/geist/linear/shadcn/notion`，兜底 `Braun`），在 CanvasScreen 中按需使用；**新增主题家族时记得同步前缀分支**。
 
 ### 5.4 共享剪贴板工具
 
@@ -235,25 +235,19 @@ val animatedBg by animateColorAsState(
 ```kotlin
 Column(modifier = modifier.fillMaxWidth().background(currentTheme.background).statusBarsPadding()) {
     Row(modifier = Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 10.dp)) {
-        // 左：侧边栏开关(28dp) + Monogram 徽标(24dp) + HELLO 标题(12sp) + 状态脉冲灯
-        // 右：主题家族徽标(点击进设置页)；设置按钮已移至侧边栏底部
+        // 仅侧边栏开关(28dp 点击区域 + 28dp 纯 Menu 图标，无底色/边框/按压水波纹，testTag = "top_nav_sidebar_btn")
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(currentTheme.border)) // 1px 分割线
 }
 ```
 
-**调整高度**：改 `Row` 的 `height(44.dp)`（Material 3 标准可用 56/64dp），同步微调内部图标（28dp）与字号（12~13sp）。`.statusBarsPadding()` 保证状态栏避让。设置页 `SettingsScreen` 已移除自带的页面级顶栏（含返回按钮），全应用顶部区域统一由 `ProductionTopNavBar` 管理。
+顶栏已极简化：**仅保留左侧侧边栏开关按钮与底部 1px 分割线**。原 Monogram 徽标、HELLO 标题、呼吸脉冲药丸、右侧主题家族徽标均已移除；设置入口在侧边栏底部，主题切换在设置页/画布快切条完成。
 
-### 6.2 呼吸状态脉冲灯
+**粗细调整**：
+- **整条栏高度**：改 `Row` 的 `height(44.dp)`——细：36~40dp；粗：56/64dp（Material 3 标准），同步微调内部按钮（28dp）。
+- **分割线粗细**：改底部 `Box` 的 `height(1.dp)`——发丝线 0.5dp、加粗 2dp、整块删除则无分割线。
 
-```kotlin
-val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-val pulseAlpha by infiniteTransition.animateFloat(
-    initialValue = 0.35f, targetValue = 1.0f,
-    animationSpec = infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Reverse),
-    label = "pulse_alpha"
-)
-```
+`.statusBarsPadding()` 保证状态栏避让。设置页 `SettingsScreen` 已移除自带的页面级顶栏（含返回按钮），全应用顶部区域统一由 `ProductionTopNavBar` 管理。
 
 ---
 
@@ -369,7 +363,6 @@ gradle :app:testDebugUnitTest     # 单元测试 + 截图测试
 | 推拽动画 | 320ms，CubicBezier(0.16,1,0.3,1) | MainScreen |
 | 主画布推开圆角 / 投影 | 18dp / 14dp | MainScreen |
 | 背景色过渡 | 280ms FastOutSlowIn | MainScreen |
-| 脉冲灯 | 0.35→1.0，1400ms 往复 | TopNavBar |
 | 英雄卡片按压 | 0.985f 弹簧 | CanvasScreen |
 | 入场级联延迟 | 60/120/180/300/420/480ms | CanvasScreen |
 | 打字机 | 起始 350ms，行间 400ms，收尾 850ms | SplashScreen |

@@ -115,9 +115,6 @@ fun MainScreen(
                 topBar = {
                     ProductionTopNavBar(
                         currentTheme = currentTheme,
-                        onThemeChange = viewModel::selectTheme,
-                        onOpenSettings = { viewModel.selectTab(NavigationTab.SETTINGS) },
-                        onOpenInspector = viewModel::showInspector,
                         onOpenSidebar = viewModel::toggleSidebar
                     )
                 },
