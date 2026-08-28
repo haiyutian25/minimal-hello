@@ -1,0 +1,16 @@
+package com.example.core.data.model
+
+/**
+ * Domain model for persisted UI preferences.
+ */
+data class UserPreferences(
+    val themeId: String,
+    val typographyChoice: String,
+) {
+    companion object {
+        val DEFAULT = UserPreferences(
+            themeId = "editorial-light",
+            typographyChoice = "EDITORIAL",
+        )
+    }
+}
