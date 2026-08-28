@@ -92,29 +92,7 @@ fun MainScreen(
             .fillMaxSize()
             .background(currentTheme.card)
     ) {
-        // 1. Sliding Sidebar (Anchored on the left)
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(sidebarWidth)
-                .offset(x = sidebarOffset)
-        ) {
-            AppSidebarContent(
-                currentTab = currentTab,
-                onSelectTab = {
-                    viewModel.selectTab(it)
-                    viewModel.closeSidebar()
-                },
-                currentTheme = currentTheme,
-                onThemeChange = viewModel::selectTheme,
-                onOpenInspector = viewModel::showInspector,
-                onCloseDrawer = viewModel::closeSidebar,
-                onReplaySplash = onReplaySplash,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-
-        // 2. Main Screen (Directly pushed to the right when sidebar expands)
+        // 1. Main Screen (Directly pushed to the right when sidebar expands)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -138,10 +116,7 @@ fun MainScreen(
                     ProductionTopNavBar(
                         currentTheme = currentTheme,
                         onThemeChange = viewModel::selectTheme,
-                        onOpenSettings = {
-                            viewModel.selectTab(NavigationTab.SETTINGS)
-                            viewModel.closeSidebar()
-                        },
+                        onOpenSettings = { viewModel.selectTab(NavigationTab.SETTINGS) },
                         onOpenInspector = viewModel::showInspector,
                         onOpenSidebar = viewModel::toggleSidebar
                     )
@@ -149,10 +124,7 @@ fun MainScreen(
                 bottomBar = {
                     ProductionBottomNavBar(
                         currentTab = currentTab,
-                        onTabSelected = {
-                            viewModel.selectTab(it)
-                            if (isSidebarOpen) viewModel.closeSidebar()
-                        },
+                        onTabSelected = { viewModel.selectTab(it) },
                         currentTheme = currentTheme
                     )
                 },
@@ -179,7 +151,6 @@ fun MainScreen(
                         onThemeChange = viewModel::selectTheme,
                         selectedTypography = typographyChoice,
                         onTypographyChange = viewModel::selectTypography,
-                        onBack = { viewModel.selectTab(NavigationTab.CANVAS) },
                         onOpenInspector = viewModel::showInspector,
                         onReplaySplash = onReplaySplash,
                         modifier = Modifier.padding(innerPadding)
@@ -188,14 +159,32 @@ fun MainScreen(
             }
         }
 
-        // Tap interceptor on the pushed main canvas to slide back when tapped
+        // 2. Tap-outside interceptor: geometrically covers ONLY the area right of the
+        // sidebar, so taps on the sidebar itself can never fall through to it
+        // (unconsumed taps on non-interactive sidebar areas would otherwise
+        // propagate down to a full-screen interceptor and collapse the drawer).
         if (isSidebarOpen) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.04f))
+                    .padding(start = sidebarWidth)
                     .clickable { viewModel.closeSidebar() }
-                    .testTag("push_canvas_overlay_dismiss")
+                    .testTag("sidebar_outside_dismiss")
+            )
+        }
+
+        // 3. Sliding Sidebar (Anchored on the left, drawn above the interceptor)
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(sidebarWidth)
+                .offset(x = sidebarOffset)
+        ) {
+            AppSidebarContent(
+                currentTheme = currentTheme,
+                onOpenSettings = { viewModel.selectTab(NavigationTab.SETTINGS) },
+                onCloseDrawer = viewModel::closeSidebar,
+                modifier = Modifier.fillMaxSize()
             )
         }
 

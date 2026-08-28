@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -211,25 +210,6 @@ fun ProductionTopNavBar(
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = currentTheme.foreground
-                    )
-                }
-
-                // 2. Settings Button
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(currentTheme.radiusSm))
-                        .background(currentTheme.card)
-                        .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
-                        .clickable { onOpenSettings() }
-                        .testTag("top_nav_settings_btn"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = "Settings",
-                        tint = currentTheme.foreground,
-                        modifier = Modifier.size(15.dp)
                     )
                 }
             }

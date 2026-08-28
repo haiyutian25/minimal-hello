@@ -236,13 +236,13 @@ val animatedBg by animateColorAsState(
 Column(modifier = modifier.fillMaxWidth().background(currentTheme.background).statusBarsPadding()) {
     Row(modifier = Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 10.dp)) {
         // 左：侧边栏开关(28dp) + Monogram 徽标(24dp) + HELLO 标题(12sp) + 状态脉冲灯
-        // 右：主题家族徽标(点击进设置页) + 设置按钮(28dp)
+        // 右：主题家族徽标(点击进设置页)；设置按钮已移至侧边栏底部
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(currentTheme.border)) // 1px 分割线
 }
 ```
 
-**调整高度**：改 `Row` 的 `height(44.dp)`（Material 3 标准可用 56/64dp），同步微调内部图标（28dp）与字号（12~13sp）；设置页顶栏同为 44dp，两处需保持一致。`.statusBarsPadding()` 保证状态栏避让。
+**调整高度**：改 `Row` 的 `height(44.dp)`（Material 3 标准可用 56/64dp），同步微调内部图标（28dp）与字号（12~13sp）。`.statusBarsPadding()` 保证状态栏避让。设置页 `SettingsScreen` 已移除自带的页面级顶栏（含返回按钮），全应用顶部区域统一由 `ProductionTopNavBar` 管理。
 
 ### 6.2 呼吸状态脉冲灯
 
@@ -277,11 +277,11 @@ val sidebarOffset by animateDpAsState(if (isSidebarOpen) 0.dp else -sidebarWidth
 
 1. 底层：295dp 位移槽内的 `AppSidebarContent`（内容自身声明 `width(300.dp)`，5dp 溢出被裁剪——调槽宽时两处需同步）。
 2. 表层：被推开的主画布（`offset(pushOffset)` + 动态圆角/阴影/1dp 描边）。
-3. 拦截层：展开时覆盖 4% 黑色遮罩，点击平滑拉回（`testTag = "push_canvas_overlay_dismiss"`）。
+3. 收回机制（3 种）：① **系统返回键/手势**（`BackHandler(enabled = isSidebarOpen)` 优先拦截，只收侧边栏不退出页面）；② **点击侧边栏以外的区域**（全透明拦截层，`testTag = "sidebar_outside_dismiss"`，无视觉遮罩；拦截层通过 `padding(start = sidebarWidth)` 在几何上**只覆盖侧边栏右侧区域**——若做成全屏，点在侧边栏非交互区域的事件未被消费时会穿透到拦截层导致误收回）；③ **点击底部设置入口**（跳转设置页后自动收回）。层级顺序：主画布（底）→ 外部点击拦截层（中，仅展开时存在）→ 侧边栏（顶）。
 
 ### 7.3 侧边栏内容（AppSidebarContent）
 
-自上而下 5 区块：工作区头部（34dp 衬线 "H" 头像 + "Hello Studio" + PRO 徽标）、导航组（4 标签）、调色板快切（12 预设网格，`onThemeChange` → VM 持久化）、快捷工具（CSS 审查器入口 + CSS 导出复制 + 启动页重播）、引擎信息页脚。
+极简两段式结构：**顶部工作区头部**（34dp 衬线斜体 "H" 头像 + "Hello Studio" + PRO 徽标 + "Design Systems Lab" 副标题，无关闭按钮），中间弹性留白，**底部固定设置入口**（齿轮图标 + "Settings"，点击跳转 SETTINGS 标签并自动收回侧边栏——该入口从顶栏迁移而来）。原导航组、调色板快切、快捷工具与引擎页脚均已移除；标签切换由底部导航栏承担，主题切换在设置页/画布快切条完成。
 
 ---
 

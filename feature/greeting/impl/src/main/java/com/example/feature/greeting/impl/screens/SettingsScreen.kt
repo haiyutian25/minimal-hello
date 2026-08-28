@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -31,7 +30,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
@@ -46,8 +44,6 @@ import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -85,7 +81,6 @@ fun SettingsScreen(
     onThemeChange: (CssVariables) -> Unit,
     selectedTypography: AppTypographyChoice,
     onTypographyChange: (AppTypographyChoice) -> Unit,
-    onBack: () -> Unit,
     onOpenInspector: () -> Unit,
     onReplaySplash: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -113,89 +108,16 @@ fun SettingsScreen(
         Triple("Braun Dieter Rams", "Industrial orange accent & honest design", ProductionPalettes.DieterRamsLight to ProductionPalettes.DieterRamsDark)
     )
 
-    Scaffold(
-        containerColor = currentTheme.background,
-        contentColor = currentTheme.foreground,
-        topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(currentTheme.background)
-                    .statusBarsPadding()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .padding(horizontal = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(currentTheme.radiusSm))
-                                .testTag("settings_back_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = currentTheme.foreground,
-                                modifier = Modifier.size(17.dp)
-                            )
-                        }
-
-                        Text(
-                            text = "Settings",
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.2).sp,
-                            color = currentTheme.foreground
-                        )
-                    }
-
-                    // Reset / default indicator badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(currentTheme.radiusSm))
-                            .background(currentTheme.subtleSurface)
-                            .border(1.dp, currentTheme.border.copy(alpha = 0.6f), RoundedCornerShape(currentTheme.radiusSm))
-                            .padding(horizontal = 7.dp, vertical = 2.5.dp)
-                    ) {
-                        Text(
-                            text = "Design System",
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 9.5.sp,
-                            color = currentTheme.mutedForeground
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(currentTheme.border)
-                )
-            }
-        },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 18.dp)
-                .widthIn(max = 560.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(currentTheme.background)
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 18.dp)
+            .widthIn(max = 560.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
             // ==========================================
             // SECTION 1: Color Mode (Light / Dark)
             // ==========================================
@@ -772,7 +694,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(30.dp))
         }
-    }
 }
 
 @Composable
