@@ -28,12 +28,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.toHex
+import com.example.feature.greeting.impl.components.TokenSearchBar
 
 /**
  * TokensScreen: Live CSS Design Tokens Matrix and interactive UI sandbox adhering to W3C CSS tokens specs.
@@ -89,32 +87,11 @@ fun TokensScreen(
             .widthIn(max = 560.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Search & Filter Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Filter CSS variable tokens...", fontSize = 12.sp, color = currentTheme.mutedForeground) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Outlined.Search,
-                    contentDescription = "Search",
-                    tint = currentTheme.mutedForeground,
-                    modifier = Modifier.size(16.dp)
-                )
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(currentTheme.radiusSm),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = currentTheme.card,
-                unfocusedContainerColor = currentTheme.card,
-                focusedBorderColor = currentTheme.primary,
-                unfocusedBorderColor = currentTheme.border,
-                focusedTextColor = currentTheme.foreground,
-                unfocusedTextColor = currentTheme.foreground
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("tokens_search_input")
+        // Search & Filter Bar (extracted component)
+        TokenSearchBar(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            currentTheme = currentTheme
         )
 
         Spacer(modifier = Modifier.height(20.dp))
