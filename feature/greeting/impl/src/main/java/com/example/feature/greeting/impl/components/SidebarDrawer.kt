@@ -87,12 +87,8 @@ private val SidebarProBadgePaddingHorizontal = 4.dp
 private val SidebarProBadgePaddingVertical = 1.dp
 private val SidebarSubtitleFontSize = 11.sp
 
-/** Settings entry: padding, icon and text. */
-private val SidebarSettingsPaddingHorizontal = 12.dp
-private val SidebarSettingsPaddingVertical = 10.dp
-private val SidebarSettingsSpacing = 10.dp
-private val SidebarSettingsIconSize = 16.dp
-private val SidebarSettingsFontSize = 13.sp
+/** Settings entry: icon size. */
+private val SidebarSettingsIconSize = 28.dp
 
 /**
  * Self-contained push-style sidebar drawer with gesture support.
@@ -354,38 +350,22 @@ fun AppSidebarContent(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 2. Settings Entry (moved from the top nav bar, pinned to the bottom)
+        // 2. Settings Entry (moved from the top nav bar, pinned to the bottom).
+        // Bare icon button (no chrome), matching the top nav action buttons.
         Button(
             onClick = {
                 onOpenSettings()
                 onCloseDrawer()
             },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(currentTheme.radiusSm),
+            rippleEnabled = false,
             testTag = "sidebar_settings_btn"
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(currentTheme.subtleSurface)
-                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
-                    .padding(horizontal = SidebarSettingsPaddingHorizontal, vertical = SidebarSettingsPaddingVertical),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(SidebarSettingsSpacing)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = "Settings",
-                    tint = currentTheme.foreground,
-                    modifier = Modifier.size(SidebarSettingsIconSize)
-                )
-                Text(
-                    text = "Settings",
-                    fontSize = SidebarSettingsFontSize,
-                    fontWeight = FontWeight.Medium,
-                    color = currentTheme.foreground
-                )
-            }
+            Icon(
+                imageVector = Icons.Outlined.Settings,
+                contentDescription = "Settings",
+                tint = currentTheme.foreground,
+                modifier = Modifier.size(SidebarSettingsIconSize)
+            )
         }
     }
 }

@@ -1,8 +1,6 @@
 package com.example.feature.greeting.impl.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +15,6 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -34,8 +31,7 @@ private val TopNavBarHeight = 47.dp
 /** Horizontal padding of the content row. */
 private val TopNavBarPaddingHorizontal = 10.dp
 
-/** Touch box and icon size of the leading action (menu / back). */
-private val TopNavActionBoxSize = 28.dp
+/** Icon size of the leading action (menu / back). */
 private val TopNavActionIconSize = 28.dp
 
 /** Sub-page title typography. */
@@ -74,16 +70,11 @@ fun ProductionTopNavBar(
                     .height(TopNavBarHeight)
                     .padding(horizontal = TopNavBarPaddingHorizontal)
             ) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .size(TopNavActionBoxSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onBack() }
-                        .testTag("top_nav_back_btn"),
-                    contentAlignment = Alignment.Center
+                Button(
+                    onClick = { onBack() },
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    rippleEnabled = false,
+                    testTag = "top_nav_back_btn"
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -111,15 +102,10 @@ fun ProductionTopNavBar(
                     .padding(horizontal = TopNavBarPaddingHorizontal),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(TopNavActionBoxSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onOpenSidebar() }
-                        .testTag("top_nav_sidebar_btn"),
-                    contentAlignment = Alignment.Center
+                Button(
+                    onClick = { onOpenSidebar() },
+                    rippleEnabled = false,
+                    testTag = "top_nav_sidebar_btn"
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Menu,

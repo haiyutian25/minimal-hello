@@ -44,8 +44,10 @@ private val CardButtonDefaultContentPadding = PaddingValues(14.dp)
  * - Themed ([currentTheme] != null): the button draws its own chrome
  *   (subtleSurface background, 1dp border, radiusSm corners, 12x10 padding),
  *   and every aspect is overridable: [shape], [containerColor], [border],
- *   [contentPadding], [contentAlignment]. Pass
+ *   [contentPadding], [contentAlignment], [fillWidth]. Pass
  *   `border = BorderStroke(0.dp, Color.Transparent)` to drop the border.
+ *   Width wraps the content by default; set [fillWidth] to true for
+ *   full-width row/card buttons.
  *
  * Note: this is the feature's own button, distinct from Material 3's
  * `androidx.compose.material3.Button` (import with an alias where both meet).
@@ -67,6 +69,7 @@ fun Button(
     border: BorderStroke? = null,
     contentPadding: PaddingValues? = null,
     contentAlignment: Alignment? = null,
+    fillWidth: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val themedShape: Shape =
@@ -93,7 +96,7 @@ fun Button(
             // Themed mode: the button owns the chrome; every value overridable.
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
                     .background(containerColor ?: currentTheme.subtleSurface)
                     .border(
                         border = border ?: BorderStroke(ButtonDefaultBorderWidth, currentTheme.border),
@@ -144,7 +147,8 @@ fun CardButton(
             color = if (isSelected) currentTheme.primary else currentTheme.border
         ),
         contentPadding = contentPadding,
-        contentAlignment = contentAlignment
+        contentAlignment = contentAlignment,
+        fillWidth = true
     ) {
         content()
     }
