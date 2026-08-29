@@ -60,11 +60,39 @@ val SidebarWidth: Dp = 295.dp
 const val SidebarDrawerAnimMillis = 320
 val SidebarDrawerEasing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 
-/** Left-edge zone (in dp) where a rightward swipe can open the closed drawer. */
-private val SidebarEdgeZone = 32.dp
+/**
+ * Left-edge zone (in dp) where a rightward swipe can open the closed drawer.
+ * Exposed so other gesture owners (e.g. [SwipeTabContainer]) can exclude it.
+ */
+val SidebarEdgeZone = 32.dp
 
 /** Horizontal fling velocity (px/s) that forces the drawer open/closed. */
 private const val SidebarFlingVelocityThreshold = 300f
+
+// ── Sidebar content dimensions ─────────────────────────────────────────
+
+/** Inner padding of the sidebar content column. */
+private val SidebarContentPaddingHorizontal = 16.dp
+private val SidebarContentPaddingVertical = 14.dp
+
+/** Workspace header: avatar, texts and spacing. */
+private val SidebarAvatarSize = 34.dp
+private val SidebarAvatarLetterFontSize = 17.sp
+private val SidebarHeaderSpacing = 10.dp
+private val SidebarWorkspaceNameFontSize = 14.sp
+private val SidebarNameBadgeSpacing = 6.dp
+private val SidebarProBadgeFontSize = 8.5.sp
+private val SidebarProBadgeCornerRadius = 3.dp
+private val SidebarProBadgePaddingHorizontal = 4.dp
+private val SidebarProBadgePaddingVertical = 1.dp
+private val SidebarSubtitleFontSize = 11.sp
+
+/** Settings entry: padding, icon and text. */
+private val SidebarSettingsPaddingHorizontal = 12.dp
+private val SidebarSettingsPaddingVertical = 10.dp
+private val SidebarSettingsSpacing = 10.dp
+private val SidebarSettingsIconSize = 16.dp
+private val SidebarSettingsFontSize = 13.sp
 
 /**
  * Self-contained push-style sidebar drawer with gesture support.
@@ -263,19 +291,19 @@ fun AppSidebarContent(
             .border(1.dp, currentTheme.border)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(horizontal = SidebarContentPaddingHorizontal, vertical = SidebarContentPaddingVertical)
             .testTag("app_sidebar_drawer")
     ) {
         // 1. Workspace / Profile Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(SidebarHeaderSpacing)
         ) {
             // Workspace Avatar
             Box(
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(SidebarAvatarSize)
                     .clip(RoundedCornerShape(currentTheme.radiusSm))
                     .background(currentTheme.subtleSurface)
                     .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm)),
@@ -285,7 +313,7 @@ fun AppSidebarContent(
                     text = "H",
                     fontFamily = FontFamily.Serif,
                     fontStyle = FontStyle.Italic,
-                    fontSize = 17.sp,
+                    fontSize = SidebarAvatarLetterFontSize,
                     fontWeight = FontWeight.Bold,
                     color = currentTheme.foreground
                 )
@@ -294,23 +322,23 @@ fun AppSidebarContent(
             Column {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SidebarNameBadgeSpacing)
                 ) {
                     Text(
                         text = "Hello Studio",
-                        fontSize = 14.sp,
+                        fontSize = SidebarWorkspaceNameFontSize,
                         fontWeight = FontWeight.Bold,
                         color = currentTheme.foreground
                     )
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(3.dp))
+                            .clip(RoundedCornerShape(SidebarProBadgeCornerRadius))
                             .background(currentTheme.primary.copy(alpha = 0.15f))
-                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                            .padding(horizontal = SidebarProBadgePaddingHorizontal, vertical = SidebarProBadgePaddingVertical)
                     ) {
                         Text(
                             text = "PRO",
-                            fontSize = 8.5.sp,
+                            fontSize = SidebarProBadgeFontSize,
                             fontWeight = FontWeight.Bold,
                             color = currentTheme.primary
                         )
@@ -318,7 +346,7 @@ fun AppSidebarContent(
                 }
                 Text(
                     text = "Design Systems Lab",
-                    fontSize = 11.sp,
+                    fontSize = SidebarSubtitleFontSize,
                     color = currentTheme.mutedForeground
                 )
             }
@@ -341,19 +369,19 @@ fun AppSidebarContent(
                     .fillMaxWidth()
                     .background(currentTheme.subtleSurface)
                     .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(horizontal = SidebarSettingsPaddingHorizontal, vertical = SidebarSettingsPaddingVertical),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(SidebarSettingsSpacing)
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Settings,
                     contentDescription = "Settings",
                     tint = currentTheme.foreground,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(SidebarSettingsIconSize)
                 )
                 Text(
                     text = "Settings",
-                    fontSize = 13.sp,
+                    fontSize = SidebarSettingsFontSize,
                     fontWeight = FontWeight.Medium,
                     color = currentTheme.foreground
                 )

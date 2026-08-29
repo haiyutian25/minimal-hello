@@ -26,6 +26,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 
+// ── Top nav bar dimensions ─────────────────────────────────────────────
+
+/** Content row height (both main and sub-page shapes). */
+private val TopNavBarHeight = 47.dp
+
+/** Horizontal padding of the content row. */
+private val TopNavBarPaddingHorizontal = 10.dp
+
+/** Touch box and icon size of the leading action (menu / back). */
+private val TopNavActionBoxSize = 28.dp
+private val TopNavActionIconSize = 28.dp
+
+/** Sub-page title typography. */
+private val TopNavTitleFontSize = 14.5.sp
+private val TopNavTitleLetterSpacing = (-0.2).sp
+
+/** Height of the hairline divider below the bar. */
+private val TopNavDividerHeight = 1.dp
+
 /**
  * Minimal top navigation bar with two shapes:
  * - Main shape ([pageTitle] == null): sidebar toggle button on the left.
@@ -52,13 +71,13 @@ fun ProductionTopNavBar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(47.dp)
-                    .padding(horizontal = 10.dp)
+                    .height(TopNavBarHeight)
+                    .padding(horizontal = TopNavBarPaddingHorizontal)
             ) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                        .size(28.dp)
+                        .size(TopNavActionBoxSize)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -70,15 +89,15 @@ fun ProductionTopNavBar(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = currentTheme.foreground,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(TopNavActionIconSize)
                     )
                 }
 
                 Text(
                     text = pageTitle,
-                    fontSize = 14.5.sp,
+                    fontSize = TopNavTitleFontSize,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.2).sp,
+                    letterSpacing = TopNavTitleLetterSpacing,
                     color = currentTheme.foreground,
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -88,13 +107,13 @@ fun ProductionTopNavBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(47.dp)
-                    .padding(horizontal = 10.dp),
+                    .height(TopNavBarHeight)
+                    .padding(horizontal = TopNavBarPaddingHorizontal),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(TopNavActionBoxSize)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -106,7 +125,7 @@ fun ProductionTopNavBar(
                         imageVector = Icons.Outlined.Menu,
                         contentDescription = "Open Sidebar Menu",
                         tint = currentTheme.foreground,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(TopNavActionIconSize)
                     )
                 }
             }
@@ -116,7 +135,7 @@ fun ProductionTopNavBar(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(1.dp)
+                .height(TopNavDividerHeight)
                 .background(currentTheme.border)
         )
     }

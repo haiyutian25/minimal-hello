@@ -15,6 +15,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Arrangement
 import com.example.core.ui.theme.CssVariables
 
+// ── Slider dimensions ──────────────────────────────────────────────────
+
+/** Title-row typography: label (left) and live value readout (right). */
+private val SliderLabelFontSize = 12.5.sp
+private val SliderValueFontSize = 11.5.sp
+
 /**
  * Shared labeled value slider: title row (label + live value readout) above a
  * CSS-token themed Material slider. Stateless — value is hoisted to the caller.
@@ -42,14 +48,14 @@ fun Slider(
         ) {
             Text(
                 text = label,
-                fontSize = 12.5.sp,
+                fontSize = SliderLabelFontSize,
                 fontWeight = FontWeight.Medium,
                 color = currentTheme.foreground
             )
             Text(
                 text = valueText,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 11.5.sp,
+                fontSize = SliderValueFontSize,
                 fontWeight = FontWeight.Bold,
                 color = currentTheme.primary
             )

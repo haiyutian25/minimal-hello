@@ -16,6 +16,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 
+// ── Search bar dimensions ──────────────────────────────────────────────
+
+/** Placeholder text size and leading search icon size. */
+private val SearchPlaceholderFontSize = 12.sp
+private val SearchLeadingIconSize = 16.dp
+
 /**
  * Stateless themed search / filter input (CSS-token driven), used at the top
  * of the Tokens page. State is hoisted to the caller.
@@ -31,13 +37,13 @@ fun TokenSearchBar(
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text(placeholder, fontSize = 12.sp, color = currentTheme.mutedForeground) },
+        placeholder = { Text(placeholder, fontSize = SearchPlaceholderFontSize, color = currentTheme.mutedForeground) },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Outlined.Search,
                 contentDescription = "Search",
                 tint = currentTheme.mutedForeground,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(SearchLeadingIconSize)
             )
         },
         singleLine = true,

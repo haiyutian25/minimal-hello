@@ -17,6 +17,7 @@ import com.example.feature.greeting.impl.components.NavigationTab
 import com.example.feature.greeting.impl.components.ProductionBottomNavBar
 import com.example.feature.greeting.impl.components.ProductionTopNavBar
 import com.example.feature.greeting.impl.components.SidebarDrawer
+import com.example.feature.greeting.impl.components.SidebarEdgeZone
 import com.example.feature.greeting.impl.screens.CanvasScreen
 import com.example.feature.greeting.impl.screens.SettingsMenuScreen
 import com.example.feature.greeting.impl.screens.SettingsScreen
@@ -79,20 +80,6 @@ fun MainScreen(
                         onBack = { viewModel.backSettings() }
                     )
                 },
-                bottomBar = {
-                    // Bottom navigation belongs to the main tabs only;
-                    // settings menu / settings pages render without it.
-                    if (settingsLevel == SettingsLevel.NONE) {
-                        ProductionBottomNavBar(
-                            currentTab = currentTab,
-                            onTabSelected = {
-                                viewModel.selectTab(it)
-                                viewModel.exitSettings()
-                            },
-                            currentTheme = currentTheme
-                        )
-                    }
-                },
                 modifier = Modifier.fillMaxSize()
             ) { innerPadding ->
                 // Settings flow renders inside the Scaffold content area so the
@@ -112,24 +99,36 @@ fun MainScreen(
                         onReplaySplash = onReplaySplash,
                         modifier = Modifier.padding(innerPadding)
                     )
-                    SettingsLevel.NONE -> when (currentTab) {
-                        NavigationTab.CANVAS -> CanvasScreen(
-                            viewModel = viewModel,
-                            modifier = Modifier.padding(innerPadding)
-                        )
-                        NavigationTab.TYPOGRAPHY -> TypeStudioScreen(
-                            currentTheme = currentTheme,
-                            selectedTypography = typographyChoice,
-                            onTypographyChange = viewModel::selectTypography,
-                            modifier = Modifier.padding(innerPadding)
-                        )
-                        NavigationTab.TOKENS -> TokensScreen(
-                            currentTheme = currentTheme,
-                            onOpenInspector = viewModel::showInspector,
-                            modifier = Modifier.padding(innerPadding)
-                        )
-                        // 4th tab is intentionally blank (settings moved to the sidebar flow)
-                        NavigationTab.SETTINGS -> Box(modifier = Modifier.fillMaxSize())
+                    // Bottom navigation hosts the pages itself; swipe-to-switch
+                    // is its optional feature. While the drawer is open, drags
+                    // keep closing it, and the left edge zone stays reserved
+                    // for the drawer's edge swipe.
+                    SettingsLevel.NONE -> ProductionBottomNavBar(
+                        currentTab = currentTab,
+                        onTabSelected = {
+                            viewModel.selectTab(it)
+                            viewModel.exitSettings()
+                        },
+                        currentTheme = currentTheme,
+                        swipeable = true,
+                        swipeEnabled = !isSidebarOpen,
+                        excludedStartZone = SidebarEdgeZone,
+                        modifier = Modifier.padding(innerPadding)
+                    ) { tab ->
+                        when (tab) {
+                            NavigationTab.CANVAS -> CanvasScreen(viewModel = viewModel)
+                            NavigationTab.TYPOGRAPHY -> TypeStudioScreen(
+                                currentTheme = currentTheme,
+                                selectedTypography = typographyChoice,
+                                onTypographyChange = viewModel::selectTypography
+                            )
+                            NavigationTab.TOKENS -> TokensScreen(
+                                currentTheme = currentTheme,
+                                onOpenInspector = viewModel::showInspector
+                            )
+                            // 4th tab is intentionally blank (settings moved to the sidebar flow)
+                            NavigationTab.SETTINGS -> Box(modifier = Modifier.fillMaxSize())
+                        }
                     }
                 }
             }

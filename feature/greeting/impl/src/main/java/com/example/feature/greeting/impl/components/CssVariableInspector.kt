@@ -69,6 +69,54 @@ import com.example.core.ui.theme.toHex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+// ── Inspector dimensions ───────────────────────────────────────────────
+
+/** Drag handle. */
+private val InspectorHandleWidth = 36.dp
+private val InspectorHandleHeight = 4.dp
+private val InspectorHandleCornerRadius = 2.dp
+
+/** Sheet content padding. */
+private val InspectorContentPaddingHorizontal = 20.dp
+private val InspectorContentPaddingVertical = 8.dp
+
+/** Header typography. */
+private val InspectorTitleFontSize = 18.sp
+private val InspectorTitleLetterSpacing = (-0.3).sp
+private val InspectorSubtitleFontSize = 12.sp
+
+/** Tab switcher + pills. */
+private val InspectorTabRowPadding = 3.dp
+private val InspectorTabSpacing = 4.dp
+private val InspectorTabPillPaddingVertical = 7.dp
+private val InspectorTabPillIconSize = 14.dp
+private val InspectorTabPillIconTextSpacing = 6.dp
+private val InspectorTabPillFontSize = 12.sp
+
+/** CSS code block + copy button. */
+private val InspectorCodeBlockPadding = 14.dp
+private val InspectorCodeFontSize = 12.sp
+private val InspectorCodeLineHeight = 18.sp
+private val InspectorCopyButtonHeight = 44.dp
+private val InspectorCopyIconSize = 16.dp
+private val InspectorCopyIconTextSpacing = 8.dp
+private val InspectorCopyFontSize = 13.sp
+
+/** Token list. */
+private val InspectorSectionTitleFontSize = 13.sp
+private val InspectorTokenRowPaddingHorizontal = 12.dp
+private val InspectorTokenRowPaddingVertical = 10.dp
+private val InspectorTokenSwatchSize = 24.dp
+private val InspectorTokenSwatchTextSpacing = 12.dp
+private val InspectorTokenNameFontSize = 12.sp
+private val InspectorTokenDescFontSize = 11.sp
+
+/** Accent swatches. */
+private val InspectorAccentSwatchSize = 34.dp
+private val InspectorAccentSwatchSpacing = 10.dp
+private val InspectorAccentSelectedBorderWidth = 2.dp
+private val InspectorAccentCheckIconSize = 16.dp
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CssVariableInspectorSheet(
@@ -92,9 +140,9 @@ fun CssVariableInspectorSheet(
             Box(
                 modifier = Modifier
                     .padding(top = 12.dp, bottom = 8.dp)
-                    .width(36.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
+                    .width(InspectorHandleWidth)
+                    .height(InspectorHandleHeight)
+                    .clip(RoundedCornerShape(InspectorHandleCornerRadius))
                     .background(CssTheme.vars.mutedForeground.copy(alpha = 0.4f))
             )
         },
@@ -104,7 +152,7 @@ fun CssVariableInspectorSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .padding(horizontal = InspectorContentPaddingHorizontal, vertical = InspectorContentPaddingVertical)
                 .verticalScroll(rememberScrollState())
         ) {
             // Header
@@ -116,14 +164,14 @@ fun CssVariableInspectorSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "CSS Variables Inspector",
-                        fontSize = 18.sp,
+                        fontSize = InspectorTitleFontSize,
                         fontWeight = FontWeight.SemiBold,
                         color = CssTheme.vars.cardForeground,
-                        letterSpacing = (-0.3).sp
+                        letterSpacing = InspectorTitleLetterSpacing
                     )
                     Text(
                         text = "Tokenized Design System • ${currentTheme.name}",
-                        fontSize = 12.sp,
+                        fontSize = InspectorSubtitleFontSize,
                         color = CssTheme.vars.mutedForeground
                     )
                 }
@@ -148,8 +196,8 @@ fun CssVariableInspectorSheet(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(CssTheme.vars.radiusSm))
                     .background(CssTheme.vars.muted)
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    .padding(InspectorTabRowPadding),
+                horizontalArrangement = Arrangement.spacedBy(InspectorTabSpacing)
             ) {
                 TabPill(
                     title = "CSS Code",
@@ -183,13 +231,13 @@ fun CssVariableInspectorSheet(
                             color = CssTheme.vars.border,
                             shape = RoundedCornerShape(CssTheme.vars.radiusSm)
                         )
-                        .padding(14.dp)
+                        .padding(InspectorCodeBlockPadding)
                 ) {
                     Text(
                         text = currentTheme.toCssString(),
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
+                        fontSize = InspectorCodeFontSize,
+                        lineHeight = InspectorCodeLineHeight,
                         color = if (CssTheme.vars.isDark) Color(0xFF38BDF8) else Color(0xFF0284C7),
                         modifier = Modifier.testTag("css_snippet_text")
                     )
@@ -210,7 +258,7 @@ fun CssVariableInspectorSheet(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp)
+                        .height(InspectorCopyButtonHeight)
                         .testTag("copy_css_btn"),
                     shape = RoundedCornerShape(CssTheme.vars.radiusSm),
                     colors = ButtonDefaults.buttonColors(
@@ -221,20 +269,20 @@ fun CssVariableInspectorSheet(
                     Icon(
                         imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
                         contentDescription = "Copy CSS",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(InspectorCopyIconSize)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(InspectorCopyIconTextSpacing))
                     Text(
                         text = if (isCopied) "CSS Copied!" else "Copy CSS Variables",
                         fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp
+                        fontSize = InspectorCopyFontSize
                     )
                 }
             } else {
                 // Token Swatches and Live Accent Tuning
                 Text(
                     text = "CSS Color Tokens",
-                    fontSize = 13.sp,
+                    fontSize = InspectorSectionTitleFontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = CssTheme.vars.cardForeground
                 )
@@ -263,28 +311,28 @@ fun CssVariableInspectorSheet(
                                 .clip(RoundedCornerShape(CssTheme.vars.radiusSm))
                                 .background(CssTheme.vars.subtleSurface)
                                 .border(1.dp, CssTheme.vars.border, RoundedCornerShape(CssTheme.vars.radiusSm))
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                .padding(horizontal = InspectorTokenRowPaddingHorizontal, vertical = InspectorTokenRowPaddingVertical),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(24.dp)
+                                    .size(InspectorTokenSwatchSize)
                                     .clip(CircleShape)
                                     .background(color)
                                     .border(1.dp, CssTheme.vars.border, CircleShape)
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(InspectorTokenSwatchTextSpacing))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = tokenName,
                                     fontFamily = FontFamily.Monospace,
-                                    fontSize = 12.sp,
+                                    fontSize = InspectorTokenNameFontSize,
                                     fontWeight = FontWeight.SemiBold,
                                     color = CssTheme.vars.cardForeground
                                 )
                                 Text(
                                     text = desc,
-                                    fontSize = 11.sp,
+                                    fontSize = InspectorTokenDescFontSize,
                                     color = CssTheme.vars.mutedForeground
                                 )
                             }
@@ -303,7 +351,7 @@ fun CssVariableInspectorSheet(
                 // Live Accent Tuning
                 Text(
                     text = "Live Override --primary Accent",
-                    fontSize = 13.sp,
+                    fontSize = InspectorSectionTitleFontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = CssTheme.vars.cardForeground
                 )
@@ -325,16 +373,16 @@ fun CssVariableInspectorSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(InspectorAccentSwatchSpacing)
                 ) {
                     customAccents.forEach { accentColor ->
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(InspectorAccentSwatchSize)
                                 .clip(CircleShape)
                                 .background(accentColor)
                                 .border(
-                                    width = if (currentTheme.primary == accentColor) 2.dp else 1.dp,
+                                    width = if (currentTheme.primary == accentColor) InspectorAccentSelectedBorderWidth else 1.dp,
                                     color = if (currentTheme.primary == accentColor) CssTheme.vars.foreground else CssTheme.vars.border,
                                     shape = CircleShape
                                 )
@@ -348,7 +396,7 @@ fun CssVariableInspectorSheet(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
                                     tint = if (accentColor == Color(0xFFFAFAFA)) Color.Black else Color.White,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(InspectorAccentCheckIconSize)
                                 )
                             }
                         }
@@ -374,7 +422,7 @@ private fun TabPill(
             .clip(RoundedCornerShape(CssTheme.vars.radiusSm))
             .background(if (isSelected) CssTheme.vars.card else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(vertical = 7.dp),
+            .padding(vertical = InspectorTabPillPaddingVertical),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -385,12 +433,12 @@ private fun TabPill(
                 imageVector = icon,
                 contentDescription = null,
                 tint = if (isSelected) CssTheme.vars.cardForeground else CssTheme.vars.mutedForeground,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(InspectorTabPillIconSize)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(InspectorTabPillIconTextSpacing))
             Text(
                 text = title,
-                fontSize = 12.sp,
+                fontSize = InspectorTabPillFontSize,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (isSelected) CssTheme.vars.cardForeground else CssTheme.vars.mutedForeground
             )
