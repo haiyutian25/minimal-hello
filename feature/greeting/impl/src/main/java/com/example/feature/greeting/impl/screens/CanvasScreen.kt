@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
+import com.example.feature.greeting.impl.components.Button
 import com.example.core.ui.theme.toHex
 import com.example.core.ui.util.copyToClipboard
 import com.example.feature.greeting.impl.GreetingViewModel
@@ -185,29 +186,32 @@ fun CanvasScreen(
             }
 
             // Quick CSS Inspector pill trigger
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(currentTheme.radiusSm))
-                    .background(currentTheme.subtleSurface)
-                    .border(1.dp, currentTheme.border.copy(alpha = 0.5f), RoundedCornerShape(currentTheme.radiusSm))
-                    .clickable { viewModel.showInspector() }
-                    .padding(horizontal = 8.dp, vertical = 3.5.dp)
-                    .testTag("open_inspector_quick_pill")
+            Button(
+                onClick = { viewModel.showInspector() },
+                shape = RoundedCornerShape(currentTheme.radiusSm),
+                testTag = "open_inspector_quick_pill"
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Tune,
-                    contentDescription = null,
-                    tint = currentTheme.primary,
-                    modifier = Modifier.size(11.dp)
-                )
-                Text(
-                    text = "Inspect CSS",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = currentTheme.foreground
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    modifier = Modifier
+                        .background(currentTheme.subtleSurface)
+                        .border(1.dp, currentTheme.border.copy(alpha = 0.5f), RoundedCornerShape(currentTheme.radiusSm))
+                        .padding(horizontal = 8.dp, vertical = 3.5.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Tune,
+                        contentDescription = null,
+                        tint = currentTheme.primary,
+                        modifier = Modifier.size(11.dp)
+                    )
+                    Text(
+                        text = "Inspect CSS",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = currentTheme.foreground
+                    )
+                }
             }
         }
 
@@ -231,22 +235,22 @@ fun CanvasScreen(
                 val isSelected = currentPresetBase == name
                 val targetVariant = if (currentTheme.isDark) darkVariant else lightVariant
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(currentTheme.radiusLg))
-                        .background(if (isSelected) currentTheme.card else currentTheme.subtleSurface)
-                        .border(
-                            width = if (isSelected) 1.5.dp else 1.dp,
-                            color = if (isSelected) currentTheme.primary else currentTheme.border.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(currentTheme.radiusLg)
-                        )
-                        .clickable {
-                            viewModel.selectTheme(targetVariant)
-                        }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .testTag("preset_pill_$name")
+                Button(
+                    onClick = { viewModel.selectTheme(targetVariant) },
+                    shape = RoundedCornerShape(currentTheme.radiusLg),
+                    testTag = "preset_pill_$name"
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier
+                            .background(if (isSelected) currentTheme.card else currentTheme.subtleSurface)
+                            .border(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) currentTheme.primary else currentTheme.border.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(currentTheme.radiusLg)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
@@ -524,19 +528,22 @@ fun CanvasScreen(
                     }
 
                     // Custom text input toggle
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(currentTheme.radiusSm))
-                            .background(if (showCustomGreetingInput) currentTheme.primary.copy(alpha = 0.1f) else Color.Transparent)
-                            .clickable { showCustomGreetingInput = !showCustomGreetingInput }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    Button(
+                        onClick = { showCustomGreetingInput = !showCustomGreetingInput },
+                        shape = RoundedCornerShape(currentTheme.radiusSm)
                     ) {
-                        Text(
-                            text = if (showCustomGreetingInput) "Close edit" else "Custom text",
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = currentTheme.primary
-                        )
+                        Box(
+                            modifier = Modifier
+                                .background(if (showCustomGreetingInput) currentTheme.primary.copy(alpha = 0.1f) else Color.Transparent)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (showCustomGreetingInput) "Close edit" else "Custom text",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = currentTheme.primary
+                            )
+                        }
                     }
                 }
             }
@@ -634,35 +641,39 @@ fun CanvasScreen(
         ) {
             TypographyStyle.entries.forEach { style ->
                 val isSelected = selectedTypography == style
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(currentTheme.radiusSm))
-                        .background(if (isSelected) currentTheme.subtleSurface else Color.Transparent)
-                        .border(
-                            width = if (isSelected) 1.dp else 0.dp,
-                            color = if (isSelected) currentTheme.border else Color.Transparent,
-                            shape = RoundedCornerShape(currentTheme.radiusSm)
+                Button(
+                    onClick = {
+                        viewModel.selectTypography(
+                            when (style) {
+                                TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
+                                TypographyStyle.SANS -> AppTypographyChoice.SANS
+                                TypographyStyle.MONO -> AppTypographyChoice.MONO
+                            }
                         )
-                        .clickable {
-                            viewModel.selectTypography(
-                                when (style) {
-                                    TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
-                                    TypographyStyle.SANS -> AppTypographyChoice.SANS
-                                    TypographyStyle.MONO -> AppTypographyChoice.MONO
-                                }
-                            )
-                        }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(currentTheme.radiusSm)
                 ) {
-                    Text(
-                        text = style.label,
-                        fontFamily = style.font,
-                        fontSize = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isSelected) currentTheme.foreground else currentTheme.mutedForeground
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(if (isSelected) currentTheme.subtleSurface else Color.Transparent)
+                            .border(
+                                width = if (isSelected) 1.dp else 0.dp,
+                                color = if (isSelected) currentTheme.border else Color.Transparent,
+                                shape = RoundedCornerShape(currentTheme.radiusSm)
+                            )
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = style.label,
+                            fontFamily = style.font,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) currentTheme.foreground else currentTheme.mutedForeground
+                        )
+                    }
                 }
             }
         }
@@ -701,37 +712,40 @@ fun CanvasScreen(
                 }
 
                 // Copy snippet button with instant visual confirmation
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(currentTheme.radiusLg))
-                        .background(currentTheme.subtleSurface)
-                        .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
-                        .clickable {
-                            context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
-                            isCopied = true
-                            Toast.makeText(context, "CSS Variables Copied", Toast.LENGTH_SHORT).show()
-                            scope.launch {
-                                delay(1800)
-                                isCopied = false
-                            }
+                Button(
+                    onClick = {
+                        context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
+                        isCopied = true
+                        Toast.makeText(context, "CSS Variables Copied", Toast.LENGTH_SHORT).show()
+                        scope.launch {
+                            delay(1800)
+                            isCopied = false
                         }
-                        .padding(horizontal = 9.dp, vertical = 4.5.dp)
-                        .testTag("quick_copy_css_btn"),
-                    verticalAlignment = Alignment.CenterVertically
+                    },
+                    shape = RoundedCornerShape(currentTheme.radiusLg),
+                    testTag = "quick_copy_css_btn"
                 ) {
-                    Icon(
-                        imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                        contentDescription = "Copy",
-                        tint = if (isCopied) currentTheme.primary else currentTheme.mutedForeground,
-                        modifier = Modifier.size(11.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (isCopied) "Copied" else "Copy CSS",
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isCopied) currentTheme.primary else currentTheme.mutedForeground
-                    )
+                    Row(
+                        modifier = Modifier
+                            .background(currentTheme.subtleSurface)
+                            .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
+                            .padding(horizontal = 9.dp, vertical = 4.5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                            contentDescription = "Copy",
+                            tint = if (isCopied) currentTheme.primary else currentTheme.mutedForeground,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isCopied) "Copied" else "Copy CSS",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isCopied) currentTheme.primary else currentTheme.mutedForeground
+                        )
+                    }
                 }
             }
 

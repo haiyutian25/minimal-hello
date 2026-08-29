@@ -28,7 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material3.Button
+import androidx.compose.material3.Button as MaterialButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.toHex
+import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.TokenSearchBar
 
 /**
@@ -124,7 +125,7 @@ fun TokensScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Button(
+                    MaterialButton(
                         onClick = { interactiveCounter++ },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = currentTheme.primary,
@@ -140,22 +141,26 @@ fun TokensScreen(
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(currentTheme.radiusSm))
-                            .background(currentTheme.muted)
-                            .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
-                            .clickable { if (interactiveCounter > 0) interactiveCounter-- }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
+                    Button(
+                        onClick = { if (interactiveCounter > 0) interactiveCounter-- },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(currentTheme.radiusSm)
                     ) {
-                        Text(
-                            text = "var(--muted) : Decrement",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = currentTheme.foreground
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(currentTheme.muted)
+                                .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "var(--muted) : Decrement",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = currentTheme.foreground
+                            )
+                        }
                     }
                 }
 
@@ -234,13 +239,16 @@ fun TokensScreen(
         ) {
             tokensList.forEachIndexed { index, (prop, color, desc) ->
                 val hexValue = "#" + color.toHex()
+                Button(
+                    onClick = {
+                        context.copyToClipboard(hexValue, label = prop)
+                        Toast.makeText(context, "$prop ($hexValue) Copied", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            context.copyToClipboard(hexValue, label = prop)
-                            Toast.makeText(context, "$prop ($hexValue) Copied", Toast.LENGTH_SHORT).show()
-                        }
                         .padding(horizontal = 14.dp, vertical = 11.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -291,6 +299,7 @@ fun TokensScreen(
                             modifier = Modifier.size(12.dp)
                         )
                     }
+                }
                 }
 
                 if (index < tokensList.size - 1) {

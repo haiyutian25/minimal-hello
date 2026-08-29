@@ -2,7 +2,6 @@ package com.example.feature.greeting.impl.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,12 +24,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.components.Button
 
 /**
  * Settings menu list, rendered inside the main Scaffold content area so the
@@ -67,47 +65,51 @@ fun SettingsMenuScreen(
         Spacer(modifier = Modifier.height(6.dp))
 
         // Entry: Appearance & Themes -> existing appearance settings page
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(currentTheme.radiusMd))
-                .background(currentTheme.card)
-                .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusMd))
-                .clickable { onOpenAppearance() }
-                .padding(horizontal = 14.dp, vertical = 13.dp)
-                .testTag("settings_menu_appearance_entry"),
-            verticalAlignment = Alignment.CenterVertically
+        Button(
+            onClick = { onOpenAppearance() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(currentTheme.radiusMd),
+            testTag = "settings_menu_appearance_entry"
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Palette,
-                contentDescription = null,
-                tint = currentTheme.primary,
-                modifier = Modifier.size(18.dp)
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Appearance & Themes",
-                    fontSize = 13.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = currentTheme.foreground
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusMd))
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Palette,
+                    contentDescription = null,
+                    tint = currentTheme.primary,
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Color modes, palettes, typography & CSS tokens",
-                    fontSize = 11.sp,
-                    color = currentTheme.mutedForeground
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Appearance & Themes",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = currentTheme.foreground
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Color modes, palettes, typography & CSS tokens",
+                        fontSize = 11.sp,
+                        color = currentTheme.mutedForeground
+                    )
+                }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = currentTheme.mutedForeground,
+                    modifier = Modifier.size(16.dp)
                 )
             }
-
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = currentTheme.mutedForeground,
-                modifier = Modifier.size(16.dp)
-            )
         }
     }
 }

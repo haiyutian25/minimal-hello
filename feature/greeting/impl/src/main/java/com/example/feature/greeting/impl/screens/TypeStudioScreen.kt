@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,8 +35,6 @@ import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,6 +55,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.components.Button
+import com.example.feature.greeting.impl.components.CardButton
+import com.example.feature.greeting.impl.components.Slider
 
 /**
  * TypeStudioScreen: An editorial-grade Typography Playground inspired by Apple Typography guidelines,
@@ -105,22 +107,25 @@ fun TypeStudioScreen(
             )
 
             // Italic Toggle Pill
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(currentTheme.radiusSm))
-                    .background(if (isItalic) currentTheme.subtleSurface else Color.Transparent)
-                    .border(1.dp, if (isItalic) currentTheme.primary else currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
-                    .clickable { isItalic = !isItalic }
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            Button(
+                onClick = { isItalic = !isItalic },
+                shape = RoundedCornerShape(currentTheme.radiusSm)
             ) {
-                Text(
-                    text = "Italic",
-                    fontStyle = FontStyle.Italic,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isItalic) currentTheme.primary else currentTheme.mutedForeground
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .background(if (isItalic) currentTheme.subtleSurface else Color.Transparent)
+                        .border(1.dp, if (isItalic) currentTheme.primary else currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "Italic",
+                        fontStyle = FontStyle.Italic,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isItalic) currentTheme.primary else currentTheme.mutedForeground
+                    )
+                }
             }
         }
 
@@ -138,42 +143,39 @@ fun TypeStudioScreen(
                     label = "font_choice_bg"
                 )
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(currentTheme.radiusSm))
-                        .background(bg)
-                        .border(
-                            width = if (isSelected) 1.5.dp else 1.dp,
-                            color = if (isSelected) currentTheme.primary else currentTheme.border,
-                            shape = RoundedCornerShape(currentTheme.radiusSm)
-                        )
-                        .clickable { onTypographyChange(choice) }
-                        .padding(vertical = 10.dp, horizontal = 6.dp)
-                        .testTag("type_studio_choice_${choice.name}"),
-                    contentAlignment = Alignment.Center
+                CardButton(
+                    onClick = { onTypographyChange(choice) },
+                    isSelected = isSelected,
+                    currentTheme = currentTheme,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(currentTheme.radiusSm),
+                    containerColor = bg,
+                    selectedBorderWidth = 1.5.dp,
+                    contentPadding = PaddingValues(vertical = 10.dp, horizontal = 6.dp),
+                    contentAlignment = Alignment.Center,
+                    testTag = "type_studio_choice_${choice.name}"
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Ag",
-                            fontFamily = choice.font,
-                            fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSelected) currentTheme.primary else currentTheme.foreground
-                        )
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Text(
-                            text = when (choice) {
-                                AppTypographyChoice.EDITORIAL -> "Serif"
-                                AppTypographyChoice.SANS -> "Sans"
-                                AppTypographyChoice.MONO -> "Mono"
-                            },
-                            fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) currentTheme.foreground else currentTheme.mutedForeground
-                        )
-                    }
+                            Text(
+                                text = "Ag",
+                                fontFamily = choice.font,
+                                fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) currentTheme.primary else currentTheme.foreground
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = when (choice) {
+                                    AppTypographyChoice.EDITORIAL -> "Serif"
+                                    AppTypographyChoice.SANS -> "Sans"
+                                    AppTypographyChoice.MONO -> "Mono"
+                                },
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) currentTheme.foreground else currentTheme.mutedForeground
+                            )
+                        }
                 }
             }
         }
@@ -252,13 +254,16 @@ fun TypeStudioScreen(
                 ) {
                     samplePhrases.forEachIndexed { idx, _ ->
                         val isPhraseSelected = idx == selectedPhraseIndex
-                        Box(
-                            modifier = Modifier
-                                .size(if (isPhraseSelected) 18.dp else 8.dp, 8.dp)
-                                .clip(CircleShape)
-                                .background(if (isPhraseSelected) currentTheme.primary else currentTheme.border)
-                                .clickable { selectedPhraseIndex = idx }
-                        )
+                        Button(
+                            onClick = { selectedPhraseIndex = idx },
+                            shape = CircleShape
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(if (isPhraseSelected) 18.dp else 8.dp, 8.dp)
+                                    .background(if (isPhraseSelected) currentTheme.primary else currentTheme.border)
+                            )
+                        }
                     }
                 }
             }
@@ -277,69 +282,25 @@ fun TypeStudioScreen(
         ) {
             Column {
                 // Size Slider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Font Size",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = currentTheme.foreground
-                    )
-                    Text(
-                        text = "${fontSizeSlider.toInt()} sp",
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = currentTheme.primary
-                    )
-                }
-
                 Slider(
                     value = fontSizeSlider,
                     onValueChange = { fontSizeSlider = it },
+                    label = "Font Size",
+                    valueText = "${fontSizeSlider.toInt()} sp",
                     valueRange = 24f..64f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = currentTheme.primary,
-                        activeTrackColor = currentTheme.primary,
-                        inactiveTrackColor = currentTheme.border
-                    )
+                    currentTheme = currentTheme
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Letter Spacing Slider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Letter Spacing (Tracking)",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = currentTheme.foreground
-                    )
-                    Text(
-                        text = "%.1f sp".format(letterSpacingSlider),
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = currentTheme.primary
-                    )
-                }
-
                 Slider(
                     value = letterSpacingSlider,
                     onValueChange = { letterSpacingSlider = it },
+                    label = "Letter Spacing (Tracking)",
+                    valueText = "%.1f sp".format(letterSpacingSlider),
                     valueRange = -2.0f..4.0f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = currentTheme.primary,
-                        activeTrackColor = currentTheme.primary,
-                        inactiveTrackColor = currentTheme.border
-                    )
+                    currentTheme = currentTheme
                 )
             }
         }

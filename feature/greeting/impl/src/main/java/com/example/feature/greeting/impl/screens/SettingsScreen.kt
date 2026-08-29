@@ -66,6 +66,8 @@ import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
 import com.example.core.ui.theme.toHex
+import com.example.feature.greeting.impl.components.Button
+import com.example.feature.greeting.impl.components.CardButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -136,31 +138,24 @@ fun SettingsScreen(
             ) {
                 val isLight = !currentTheme.isDark
                 // Light Mode Card
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(currentTheme.radiusMd))
-                        .background(currentTheme.card)
-                        .border(
-                            width = if (isLight) 2.dp else 1.dp,
-                            color = if (isLight) currentTheme.primary else currentTheme.border,
-                            shape = RoundedCornerShape(currentTheme.radiusMd)
-                        )
-                        .clickable {
-                            if (currentTheme.isDark) {
-                                val lightTheme = when (currentPresetBase) {
-                                    "Editorial" -> ProductionPalettes.EditorialLight
-                                    "Geist" -> ProductionPalettes.GeistLight
-                                    "Linear" -> ProductionPalettes.LinearLight
-                                    "Shadcn" -> ProductionPalettes.ShadcnZincLight
-                                    "Notion" -> ProductionPalettes.NotionWarmLight
-                                    else -> ProductionPalettes.DieterRamsLight
-                                }
-                                onThemeChange(lightTheme)
+                CardButton(
+                    onClick = {
+                        if (currentTheme.isDark) {
+                            val lightTheme = when (currentPresetBase) {
+                                "Editorial" -> ProductionPalettes.EditorialLight
+                                "Geist" -> ProductionPalettes.GeistLight
+                                "Linear" -> ProductionPalettes.LinearLight
+                                "Shadcn" -> ProductionPalettes.ShadcnZincLight
+                                "Notion" -> ProductionPalettes.NotionWarmLight
+                                else -> ProductionPalettes.DieterRamsLight
                             }
+                            onThemeChange(lightTheme)
                         }
-                        .padding(14.dp)
-                        .testTag("settings_mode_light_card")
+                    },
+                    isSelected = isLight,
+                    currentTheme = currentTheme,
+                    modifier = Modifier.weight(1f),
+                    testTag = "settings_mode_light_card"
                 ) {
                     Column {
                         Row(
@@ -219,31 +214,24 @@ fun SettingsScreen(
 
                 // Dark Mode Card
                 val isDark = currentTheme.isDark
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(currentTheme.radiusMd))
-                        .background(currentTheme.card)
-                        .border(
-                            width = if (isDark) 2.dp else 1.dp,
-                            color = if (isDark) currentTheme.primary else currentTheme.border,
-                            shape = RoundedCornerShape(currentTheme.radiusMd)
-                        )
-                        .clickable {
-                            if (!currentTheme.isDark) {
-                                val darkTheme = when (currentPresetBase) {
-                                    "Editorial" -> ProductionPalettes.EditorialDark
-                                    "Geist" -> ProductionPalettes.GeistDark
-                                    "Linear" -> ProductionPalettes.LinearDark
-                                    "Shadcn" -> ProductionPalettes.ShadcnZincDark
-                                    "Notion" -> ProductionPalettes.NotionWarmDark
-                                    else -> ProductionPalettes.DieterRamsDark
-                                }
-                                onThemeChange(darkTheme)
+                CardButton(
+                    onClick = {
+                        if (!currentTheme.isDark) {
+                            val darkTheme = when (currentPresetBase) {
+                                "Editorial" -> ProductionPalettes.EditorialDark
+                                "Geist" -> ProductionPalettes.GeistDark
+                                "Linear" -> ProductionPalettes.LinearDark
+                                "Shadcn" -> ProductionPalettes.ShadcnZincDark
+                                "Notion" -> ProductionPalettes.NotionWarmDark
+                                else -> ProductionPalettes.DieterRamsDark
                             }
+                            onThemeChange(darkTheme)
                         }
-                        .padding(14.dp)
-                        .testTag("settings_mode_dark_card")
+                    },
+                    isSelected = isDark,
+                    currentTheme = currentTheme,
+                    modifier = Modifier.weight(1f),
+                    testTag = "settings_mode_dark_card"
                 ) {
                     Column {
                         Row(
@@ -326,12 +314,15 @@ fun SettingsScreen(
                     val isSelected = currentPresetBase == name.split(" ").first()
                     val targetTheme = if (currentTheme.isDark) variants.second else variants.first
 
+                    Button(
+                        onClick = { onThemeChange(targetTheme) },
+                        modifier = Modifier.fillMaxWidth(),
+                        testTag = "settings_palette_item_$name"
+                    ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onThemeChange(targetTheme) }
-                            .padding(horizontal = 16.dp, vertical = 13.dp)
-                            .testTag("settings_palette_item_$name"),
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -396,6 +387,7 @@ fun SettingsScreen(
                             }
                         }
                     }
+                    }
 
                     if (index < paletteList.size - 1) {
                         Box(
@@ -432,12 +424,15 @@ fun SettingsScreen(
                 AppTypographyChoice.values().forEachIndexed { index, style ->
                     val isSelected = selectedTypography == style
 
+                    Button(
+                        onClick = { onTypographyChange(style) },
+                        modifier = Modifier.fillMaxWidth(),
+                        testTag = "settings_typography_${style.name}"
+                    ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onTypographyChange(style) }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .testTag("settings_typography_${style.name}"),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -479,6 +474,7 @@ fun SettingsScreen(
                             )
                         }
                     }
+                    }
 
                     if (index < AppTypographyChoice.values().size - 1) {
                         Box(
@@ -513,20 +509,23 @@ fun SettingsScreen(
                     .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
             ) {
                 // Row 1: Copy CSS Root Variables
+                Button(
+                    onClick = {
+                        context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
+                        isCopied = true
+                        Toast.makeText(context, "CSS Tokens Copied to Clipboard", Toast.LENGTH_SHORT).show()
+                        scope.launch {
+                            delay(1800)
+                            isCopied = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    testTag = "settings_copy_css_item"
+                ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
-                            isCopied = true
-                            Toast.makeText(context, "CSS Tokens Copied to Clipboard", Toast.LENGTH_SHORT).show()
-                            scope.launch {
-                                delay(1800)
-                                isCopied = false
-                            }
-                        }
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                        .testTag("settings_copy_css_item"),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -562,6 +561,7 @@ fun SettingsScreen(
                         color = currentTheme.primary
                     )
                 }
+                }
 
                 Box(
                     modifier = Modifier
@@ -572,12 +572,15 @@ fun SettingsScreen(
                 )
 
                 // Row 2: Open Advanced Inspector
+                Button(
+                    onClick = { onOpenInspector() },
+                    modifier = Modifier.fillMaxWidth(),
+                    testTag = "settings_open_inspector_item"
+                ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onOpenInspector() }
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                        .testTag("settings_open_inspector_item"),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -613,6 +616,7 @@ fun SettingsScreen(
                         modifier = Modifier.size(16.dp)
                     )
                 }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -646,15 +650,18 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                Button(
+                    onClick = { onReplaySplash() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(currentTheme.radiusSm),
+                    testTag = "settings_replay_splash_btn"
+                ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(currentTheme.radiusSm))
                         .background(currentTheme.subtleSurface)
                         .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
-                        .clickable { onReplaySplash() }
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                        .testTag("settings_replay_splash_btn"),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -689,6 +696,7 @@ fun SettingsScreen(
                         tint = currentTheme.mutedForeground,
                         modifier = Modifier.size(16.dp)
                     )
+                }
                 }
             }
 

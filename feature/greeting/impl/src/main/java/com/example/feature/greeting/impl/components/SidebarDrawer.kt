@@ -2,7 +2,6 @@ package com.example.feature.greeting.impl.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -121,33 +120,37 @@ fun AppSidebarContent(
         Spacer(modifier = Modifier.weight(1f))
 
         // 2. Settings Entry (moved from the top nav bar, pinned to the bottom)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(currentTheme.radiusSm))
-                .background(currentTheme.subtleSurface)
-                .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
-                .clickable {
-                    onOpenSettings()
-                    onCloseDrawer()
-                }
-                .padding(horizontal = 12.dp, vertical = 10.dp)
-                .testTag("sidebar_settings_btn"),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        Button(
+            onClick = {
+                onOpenSettings()
+                onCloseDrawer()
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(currentTheme.radiusSm),
+            testTag = "sidebar_settings_btn"
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Settings,
-                contentDescription = "Settings",
-                tint = currentTheme.foreground,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = "Settings",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = currentTheme.foreground
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(currentTheme.subtleSurface)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = "Settings",
+                    tint = currentTheme.foreground,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = "Settings",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = currentTheme.foreground
+                )
+            }
         }
     }
 }
