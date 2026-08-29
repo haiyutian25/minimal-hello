@@ -1,14 +1,5 @@
 package com.example.feature.greeting.impl.screens
 
-import com.example.core.ui.util.copyToClipboard
-
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,46 +21,29 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.ColorLens
 import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.outlined.FormatSize
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
-import com.example.core.ui.theme.toHex
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.CardButton
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 enum class AppTypographyChoice(val title: String, val subtitle: String, val font: FontFamily) {
     EDITORIAL("Editorial Serif", "Playfair / Georgia style", FontFamily.Serif),
@@ -83,14 +57,8 @@ fun SettingsScreen(
     onThemeChange: (CssVariables) -> Unit,
     selectedTypography: AppTypographyChoice,
     onTypographyChange: (AppTypographyChoice) -> Unit,
-    onOpenInspector: () -> Unit,
-    onReplaySplash: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var isCopied by remember { mutableStateOf(false) }
-
     // Identify current palette base
     val currentPresetBase = when {
         currentTheme.themeId.startsWith("editorial") -> "Editorial"
@@ -488,218 +456,6 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ==========================================
-            // SECTION 4: Developer Tools & CSS Variables
-            // ==========================================
-            SettingsSectionHeader(
-                title = "DEVELOPER & DESIGN TOKENS",
-                icon = Icons.Outlined.Code,
-                currentTheme = currentTheme
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(currentTheme.radiusLg))
-                    .background(currentTheme.card)
-                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
-            ) {
-                // Row 1: Copy CSS Root Variables
-                Button(
-                    onClick = {
-                        context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
-                        isCopied = true
-                        Toast.makeText(context, "CSS Tokens Copied to Clipboard", Toast.LENGTH_SHORT).show()
-                        scope.launch {
-                            delay(1800)
-                            isCopied = false
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "settings_copy_css_item"
-                ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Code,
-                            contentDescription = null,
-                            tint = currentTheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Copy CSS Root Tokens",
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = currentTheme.foreground
-                            )
-                            Text(
-                                text = "Export :root { ... } custom properties",
-                                fontSize = 11.sp,
-                                color = currentTheme.mutedForeground
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = if (isCopied) "Copied!" else "Copy",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = currentTheme.primary
-                    )
-                }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .height(0.5.dp)
-                        .background(currentTheme.border.copy(alpha = 0.5f))
-                )
-
-                // Row 2: Open Advanced Inspector
-                Button(
-                    onClick = { onOpenInspector() },
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "settings_open_inspector_item"
-                ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Tune,
-                            contentDescription = null,
-                            tint = currentTheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Live CSS Variable Inspector",
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = currentTheme.foreground
-                            )
-                            Text(
-                                text = "Deep dive into 14+ token overrides & hex preview",
-                                fontSize = 11.sp,
-                                color = currentTheme.mutedForeground
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = currentTheme.mutedForeground,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ==========================================
-            // SECTION 5: System & Benchmark Info
-            // ==========================================
-            SettingsSectionHeader(
-                title = "APPLICATION & SYSTEM INFO",
-                icon = Icons.Outlined.Info,
-                currentTheme = currentTheme
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(currentTheme.radiusLg))
-                    .background(currentTheme.card)
-                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
-                    .padding(16.dp)
-            ) {
-                InfoRow(label = "Application Version", value = "1.0.0 (Production)", theme = currentTheme)
-                Spacer(modifier = Modifier.height(8.dp))
-                InfoRow(label = "Design Standard", value = "CSS Custom Tokens (W3C)", theme = currentTheme)
-                Spacer(modifier = Modifier.height(8.dp))
-                InfoRow(label = "Active Accent", value = "#${currentTheme.primary.toHex()}", theme = currentTheme)
-                Spacer(modifier = Modifier.height(8.dp))
-                InfoRow(label = "Radius Spec", value = "${currentTheme.radiusLg.value.toInt()}px (Rounded)", theme = currentTheme)
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Button(
-                    onClick = { onReplaySplash() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(currentTheme.radiusSm),
-                    testTag = "settings_replay_splash_btn"
-                ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(currentTheme.subtleSurface)
-                        .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusSm))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.RestartAlt,
-                            contentDescription = null,
-                            tint = currentTheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Preview Boot Splash Animation",
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = currentTheme.foreground
-                            )
-                            Text(
-                                text = "Replay typewriter sequence & kinetic studio intro",
-                                fontSize = 11.sp,
-                                color = currentTheme.mutedForeground
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = currentTheme.mutedForeground,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                }
-            }
-
             Spacer(modifier = Modifier.height(30.dp))
         }
 }
@@ -729,32 +485,6 @@ private fun SettingsSectionHeader(
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.5.sp,
             color = currentTheme.mutedForeground
-        )
-    }
-}
-
-@Composable
-private fun InfoRow(
-    label: String,
-    value: String,
-    theme: CssVariables
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = theme.mutedForeground
-        )
-        Text(
-            text = value,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 11.5.sp,
-            fontWeight = FontWeight.Medium,
-            color = theme.foreground
         )
     }
 }

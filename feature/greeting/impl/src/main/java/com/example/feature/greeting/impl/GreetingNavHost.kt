@@ -37,8 +37,7 @@ fun GreetingNavHost(
             }
             entry<GreetingNavKey.Main> {
                 MainScreen(
-                    viewModel = viewModel,
-                    onReplaySplash = { navigator.replace(GreetingNavKey.Splash) }
+                    viewModel = viewModel
                 )
             }
         }

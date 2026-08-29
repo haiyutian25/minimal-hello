@@ -31,7 +31,6 @@ import com.example.feature.greeting.impl.screens.TypeStudioScreen
 @Composable
 fun MainScreen(
     viewModel: GreetingViewModel,
-    onReplaySplash: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val currentTheme by viewModel.currentTheme.collectAsState()
@@ -95,8 +94,6 @@ fun MainScreen(
                         onThemeChange = viewModel::selectTheme,
                         selectedTypography = typographyChoice,
                         onTypographyChange = viewModel::selectTypography,
-                        onOpenInspector = viewModel::showInspector,
-                        onReplaySplash = onReplaySplash,
                         modifier = Modifier.padding(innerPadding)
                     )
                     // Bottom navigation hosts the pages itself; swipe-to-switch
