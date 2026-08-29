@@ -88,7 +88,7 @@ private val SidebarProBadgePaddingVertical = 1.dp
 private val SidebarSubtitleFontSize = 11.sp
 
 /** Settings entry: icon size. */
-private val SidebarSettingsIconSize = 28.dp
+private val SidebarSettingsIconSize = 32.dp
 
 /**
  * Self-contained push-style sidebar drawer with gesture support.
@@ -350,22 +350,27 @@ fun AppSidebarContent(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 2. Settings Entry (moved from the top nav bar, pinned to the bottom).
-        // Bare icon button (no chrome), matching the top nav action buttons.
-        Button(
-            onClick = {
-                onOpenSettings()
-                onCloseDrawer()
-            },
-            rippleEnabled = false,
-            testTag = "sidebar_settings_btn"
+        // 2. Settings Entry (moved from the top nav bar, pinned to the bottom,
+        // aligned to the right edge). Bare icon button (no chrome).
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Settings,
-                contentDescription = "Settings",
-                tint = currentTheme.foreground,
-                modifier = Modifier.size(SidebarSettingsIconSize)
-            )
+            Button(
+                onClick = {
+                    onOpenSettings()
+                    onCloseDrawer()
+                },
+                rippleEnabled = false,
+                testTag = "sidebar_settings_btn"
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = "Settings",
+                    tint = currentTheme.foreground,
+                    modifier = Modifier.size(SidebarSettingsIconSize)
+                )
+            }
         }
     }
 }
