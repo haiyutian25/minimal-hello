@@ -15,6 +15,9 @@
     <string name="settings_mode_light_subtitle">干净的纸感色调</string>
     <string name="settings_mode_dark_title">深色 / OLED</string>
     <string name="settings_mode_dark_subtitle">深邃高对比</string>
+    <string name="settings_mode_system_title">跟随系统</string>
+    <string name="settings_mode_light_short">浅色</string>
+    <string name="settings_mode_dark_short">深色</string>
 
     <!-- 精选调色板 -->
     <string name="settings_palette_editorial_name">编辑美学</string>

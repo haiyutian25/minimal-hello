@@ -402,4 +402,13 @@ object ThemeResolver {
     fun fromThemeId(themeId: String): CssVariables =
         ProductionPalettes.AllPresets.firstOrNull { it.themeId == themeId }
             ?: ProductionPalettes.EditorialLight
+
+    /** Palette family key of a concrete themeId ("editorial-light" -> "editorial"). */
+    fun familyOf(themeId: String): String =
+        themeId.removeSuffix("-light").removeSuffix("-dark")
+
+    /** Resolves a palette family to its light or dark variant. */
+    fun resolveFamily(family: String, isDark: Boolean): CssVariables =
+        ProductionPalettes.AllPresets.firstOrNull { familyOf(it.themeId) == family && it.isDark == isDark }
+            ?: ProductionPalettes.EditorialLight
 }

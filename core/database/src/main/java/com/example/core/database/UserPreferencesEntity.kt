@@ -11,6 +11,7 @@ data class UserPreferencesEntity(
     @PrimaryKey val id: Int = SINGLE_ROW_ID,
     val themeId: String,
     val typographyChoice: String,
+    val colorMode: String,
 ) {
     companion object {
         const val SINGLE_ROW_ID = 0

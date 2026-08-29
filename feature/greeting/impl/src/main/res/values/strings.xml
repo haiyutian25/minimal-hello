@@ -15,6 +15,9 @@
     <string name="settings_mode_light_subtitle">Clean paper tone</string>
     <string name="settings_mode_dark_title">Dark / OLED</string>
     <string name="settings_mode_dark_subtitle">Deep contrast</string>
+    <string name="settings_mode_system_title">Follow System</string>
+    <string name="settings_mode_light_short">Light</string>
+    <string name="settings_mode_dark_short">Dark</string>
 
     <!-- Curated palettes -->
     <string name="settings_palette_editorial_name">Editorial Aesthetic</string>

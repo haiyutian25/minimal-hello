@@ -1,8 +1,11 @@
 package com.example.feature.greeting.impl
 
+import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.core.data.model.ColorMode
 import com.example.core.data.model.UserPreferences
 import com.example.core.data.repository.GreetingRepository
 import com.example.core.data.repository.HeroQuote
@@ -12,6 +15,7 @@ import com.example.core.ui.theme.ThemeResolver
 import com.example.feature.greeting.impl.components.NavigationTab
 import com.example.feature.greeting.impl.screens.AppTypographyChoice
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,6 +50,7 @@ enum class SettingsLevel { NONE, MENU, PAGE, LANGUAGE }
  */
 @HiltViewModel
 class GreetingViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
     greetingRepository: GreetingRepository,
 ) : ViewModel() {
@@ -63,11 +68,27 @@ class GreetingViewModel @Inject constructor(
     val isInspectorVisible: StateFlow<Boolean> = _isInspectorVisible.asStateFlow()
 
     private val _themeId = MutableStateFlow(UserPreferences.DEFAULT.themeId)
+    private val _colorMode = MutableStateFlow(ColorMode.fromId(UserPreferences.DEFAULT.colorMode))
     private val _primaryOverride = MutableStateFlow<Color?>(null)
 
+    // System dark-mode state, seeded from the app configuration and kept in
+    // sync by the UI layer; it drives the SYSTEM color mode.
+    private val _isSystemDark = MutableStateFlow(
+        (appContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+    )
+
+    val colorMode: StateFlow<ColorMode> = _colorMode.asStateFlow()
+
     val currentTheme: StateFlow<CssVariables> =
-        combine(_themeId, _primaryOverride) { themeId, primaryOverride ->
-            val base = ThemeResolver.fromThemeId(themeId)
+        combine(_themeId, _colorMode, _primaryOverride, _isSystemDark) { themeId, colorMode, primaryOverride, isSystemDark ->
+            val family = ThemeResolver.familyOf(themeId)
+            val effectiveIsDark = when (colorMode) {
+                ColorMode.LIGHT -> false
+                ColorMode.DARK -> true
+                ColorMode.SYSTEM -> isSystemDark
+            }
+            val base = ThemeResolver.resolveFamily(family, effectiveIsDark)
             if (primaryOverride != null) {
                 base.copy(primary = primaryOverride, ring = primaryOverride, accent = primaryOverride)
             } else {
@@ -95,6 +116,7 @@ class GreetingViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.observePreferences().collect { prefs ->
                 _themeId.value = prefs.themeId
+                _colorMode.value = ColorMode.fromId(prefs.colorMode)
                 _typographyChoice.value = AppTypographyChoice.entries
                     .firstOrNull { it.name == prefs.typographyChoice }
                     ?: AppTypographyChoice.EDITORIAL
@@ -148,6 +170,19 @@ class GreetingViewModel @Inject constructor(
         _primaryOverride.value = null
         _themeId.value = palette.themeId
         viewModelScope.launch { userPreferencesRepository.updateTheme(palette.themeId) }
+    }
+
+    /** Sets the color mode (follow-system / light / dark) and persists it. */
+    fun setColorMode(mode: ColorMode) {
+        _colorMode.value = mode
+        viewModelScope.launch { userPreferencesRepository.updateColorMode(mode.id) }
+    }
+
+    /** Feeds the current system dark-mode state (drives the SYSTEM color mode). */
+    fun setSystemDarkMode(isDark: Boolean) {
+        if (_isSystemDark.value != isDark) {
+            _isSystemDark.value = isDark
+        }
     }
 
     /** Transient primary-color override from the CSS inspector (not persisted). */

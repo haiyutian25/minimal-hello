@@ -15,6 +15,7 @@ interface UserPreferencesRepository {
     fun observePreferences(): Flow<UserPreferences>
     suspend fun updateTheme(themeId: String)
     suspend fun updateTypography(typographyChoice: String)
+    suspend fun updateColorMode(colorMode: String)
 }
 
 class UserPreferencesRepositoryImpl @Inject constructor(
@@ -23,8 +24,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override fun observePreferences(): Flow<UserPreferences> =
         userPreferencesDao.observe().map { entity ->
-            entity?.let { UserPreferences(themeId = it.themeId, typographyChoice = it.typographyChoice) }
-                ?: UserPreferences.DEFAULT
+            entity?.let {
+                UserPreferences(themeId = it.themeId, typographyChoice = it.typographyChoice, colorMode = it.colorMode)
+            } ?: UserPreferences.DEFAULT
         }
 
     override suspend fun updateTheme(themeId: String) {
@@ -34,6 +36,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                 ?: UserPreferencesEntity(
                     themeId = themeId,
                     typographyChoice = UserPreferences.DEFAULT.typographyChoice,
+                    colorMode = UserPreferences.DEFAULT.colorMode,
                 )
         )
     }
@@ -45,6 +48,19 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                 ?: UserPreferencesEntity(
                     themeId = UserPreferences.DEFAULT.themeId,
                     typographyChoice = typographyChoice,
+                    colorMode = UserPreferences.DEFAULT.colorMode,
+                )
+        )
+    }
+
+    override suspend fun updateColorMode(colorMode: String) {
+        val current = userPreferencesDao.observe().first()
+        userPreferencesDao.upsert(
+            current?.copy(colorMode = colorMode)
+                ?: UserPreferencesEntity(
+                    themeId = UserPreferences.DEFAULT.themeId,
+                    typographyChoice = UserPreferences.DEFAULT.typographyChoice,
+                    colorMode = colorMode,
                 )
         )
     }

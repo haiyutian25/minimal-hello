@@ -43,6 +43,7 @@ fun MainScreen(
     val isSidebarOpen by viewModel.isSidebarOpen.collectAsState()
     val isInspectorVisible by viewModel.isInspectorVisible.collectAsState()
     val typographyChoice by viewModel.typographyChoice.collectAsState()
+    val colorMode by viewModel.colorMode.collectAsState()
     val settingsLevel by viewModel.settingsLevel.collectAsState()
 
     val animatedBg by animateColorAsState(
@@ -103,6 +104,8 @@ fun MainScreen(
                     SettingsLevel.PAGE -> SettingsScreen(
                         currentTheme = currentTheme,
                         onThemeChange = viewModel::selectTheme,
+                        colorMode = colorMode,
+                        onColorModeChange = viewModel::setColorMode,
                         selectedTypography = typographyChoice,
                         onTypographyChange = viewModel::selectTypography,
                         modifier = Modifier.padding(innerPadding)
