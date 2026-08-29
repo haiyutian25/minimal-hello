@@ -54,7 +54,7 @@ enum class NavigationTab(
 
 /**
  * Modern Production Bottom Navigation Bar adhering to Linear, Vercel, and Material 3 standards:
- * - 48~52dp content height + navigationBarsPadding()
+ * - 66dp content height + navigationBarsPadding()
  * - Micro-pill active state highlight with smooth color transitions
  * - 1px subtle top border line (CSS border token)
  * - Minimum 48dp touch target with accessibility content descriptions
@@ -83,7 +83,7 @@ fun ProductionBottomNavBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(66.dp)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
