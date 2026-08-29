@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -12,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.example.feature.greeting.impl.components.CssVariableInspectorSheet
 import com.example.feature.greeting.impl.components.NavigationTab
 import com.example.feature.greeting.impl.components.ProductionBottomNavBar
@@ -118,7 +121,17 @@ fun MainScreen(
                         swipeable = true,
                         swipeEnabled = !isSidebarOpen,
                         excludedStartZone = SidebarEdgeZone,
-                        modifier = Modifier.padding(innerPadding)
+                        // Flush with the screen bottom: the bar must stay exactly
+                        // its 66dp content height, so drop the Scaffold's
+                        // navigation-bar inset from its bottom padding.
+                        modifier = Modifier.padding(
+                            PaddingValues(
+                                start = innerPadding.calculateLeftPadding(LocalLayoutDirection.current),
+                                top = innerPadding.calculateTopPadding(),
+                                end = innerPadding.calculateRightPadding(LocalLayoutDirection.current),
+                                bottom = 0.dp
+                            )
+                        )
                     ) { tab ->
                         when (tab) {
                             NavigationTab.CANVAS -> CanvasScreen(viewModel = viewModel)

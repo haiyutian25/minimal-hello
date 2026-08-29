@@ -131,7 +131,9 @@ private const val TabColorAnimMillis = 200
  * (the drawer's edge swipe).
  *
  * Bar styling follows Linear / Vercel / Material 3 standards:
- * - 66dp content height + navigationBarsPadding()
+ * - 66dp content height + navigationBarsPadding(); the host renders the bar
+ *   flush with the screen bottom, so the background extends under the system
+ *   gesture bar while the 66dp content stays above it (single inset, no gap)
  * - Micro-pill active state highlight with smooth color transitions
  * - 1px subtle top border line (CSS border token)
  * - 48dp touch target with accessibility content descriptions
