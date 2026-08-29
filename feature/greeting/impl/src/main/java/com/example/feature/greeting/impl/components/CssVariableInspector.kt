@@ -39,14 +39,11 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,11 +69,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // ── Inspector dimensions ───────────────────────────────────────────────
-
-/** Drag handle. */
-private val InspectorHandleWidth = 36.dp
-private val InspectorHandleHeight = 4.dp
-private val InspectorHandleCornerRadius = 2.dp
 
 /** Sheet content padding. */
 private val InspectorContentPaddingHorizontal = 20.dp
@@ -119,7 +111,7 @@ private val InspectorAccentSwatchSpacing = 10.dp
 private val InspectorAccentSelectedBorderWidth = 2.dp
 private val InspectorAccentCheckIconSize = 16.dp
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CssVariableInspectorSheet(
     currentTheme: CssVariables,
@@ -127,28 +119,15 @@ fun CssVariableInspectorSheet(
     onCustomPrimarySelected: (Color) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isCopied by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) } // 0: CSS Code, 1: Variable Swatches
     val copiedToast = stringResource(R.string.inspector_copied_toast)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = CssTheme.vars.card,
-        contentColor = CssTheme.vars.cardForeground,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(top = 12.dp, bottom = 8.dp)
-                    .width(InspectorHandleWidth)
-                    .height(InspectorHandleHeight)
-                    .clip(RoundedCornerShape(InspectorHandleCornerRadius))
-                    .background(CssTheme.vars.mutedForeground.copy(alpha = 0.4f))
-            )
-        },
+    BottomSheet(
+        onDismiss = onDismiss,
+        currentTheme = currentTheme,
         modifier = modifier.testTag("css_variable_inspector_sheet")
     ) {
         Column(
