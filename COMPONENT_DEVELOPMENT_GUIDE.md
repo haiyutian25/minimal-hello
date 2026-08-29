@@ -234,7 +234,7 @@ val animatedBg by animateColorAsState(
 
 ```kotlin
 Column(modifier = modifier.fillMaxWidth().background(currentTheme.background).statusBarsPadding()) {
-    Row(modifier = Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 10.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().height(47.dp).padding(horizontal = 10.dp)) {
         // 仅侧边栏开关(28dp 点击区域 + 28dp 纯 Menu 图标，无底色/边框/按压水波纹，testTag = "top_nav_sidebar_btn")
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(currentTheme.border)) // 1px 分割线
@@ -249,7 +249,7 @@ Column(modifier = modifier.fillMaxWidth().background(currentTheme.background).st
 两种形态均保留底部 1px 分割线。原 Monogram 徽标、HELLO 标题、呼吸脉冲药丸、右侧主题家族徽标均已移除；设置入口在侧边栏底部，主题切换在设置页/画布快切条完成。
 
 **粗细调整**：
-- **整条栏高度**：改 `Row` 的 `height(44.dp)`——细：36~40dp；粗：56/64dp（Material 3 标准），同步微调内部按钮（28dp）。
+- **整条栏高度**：改 `Row` 的 `height(47.dp)`（当前值，两种形态各一处需保持一致）——细：36~40dp；粗：56/64dp（Material 3 标准），同步微调内部按钮（28dp）。
 - **分割线粗细**：改底部 `Box` 的 `height(1.dp)`——发丝线 0.5dp、加粗 2dp、整块删除则无分割线。
 
 `.statusBarsPadding()` 保证状态栏避让。设置页 `SettingsScreen` 已移除自带的页面级顶栏（含返回按钮），全应用顶部区域统一由 `ProductionTopNavBar` 管理。
@@ -373,7 +373,7 @@ gradle :app:testDebugUnitTest     # 单元测试 + 截图测试
 
 | 参数 | 值 | 位置 |
 | :--- | :--- | :--- |
-| 顶栏内容行高 | 44dp | TopNavBar |
+| 顶栏内容行高 | 47dp | TopNavBar |
 | 侧边栏槽宽 / 内容宽 | 295dp / 300dp | MainScreen / SidebarDrawer |
 | 推拽动画 | 320ms，CubicBezier(0.16,1,0.3,1) | MainScreen |
 | 主画布推开圆角 / 投影 | 18dp / 14dp | MainScreen |

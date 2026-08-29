@@ -52,7 +52,7 @@ fun ProductionTopNavBar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp)
+                    .height(47.dp)
                     .padding(horizontal = 10.dp)
             ) {
                 Box(
@@ -88,7 +88,7 @@ fun ProductionTopNavBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp)
+                    .height(47.dp)
                     .padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
