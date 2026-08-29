@@ -112,13 +112,13 @@ fun ProductionBottomNavBar(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp)
+                        .height(54.dp)
                         .clip(RoundedCornerShape(currentTheme.radiusSm))
                         .background(pillBackground)
                         .clickable {
                             onTabSelected(tab)
                         }
-                        .padding(vertical = 3.dp)
+                        .padding(vertical = 1.dp)
                         .testTag(tab.testTag),
                     contentAlignment = Alignment.Center
                 ) {
@@ -130,15 +130,15 @@ fun ProductionBottomNavBar(
                             imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
                             contentDescription = tab.title,
                             tint = iconColor,
-                            modifier = Modifier.size(19.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                         Text(
                             text = tab.title,
-                            fontSize = 10.sp,
+                            fontSize = 14.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = textColor,
                             letterSpacing = 0.2.sp,
-                            modifier = Modifier.padding(top = 2.dp)
+                            modifier = Modifier.padding(top = 0.dp)
                         )
                     }
                 }
