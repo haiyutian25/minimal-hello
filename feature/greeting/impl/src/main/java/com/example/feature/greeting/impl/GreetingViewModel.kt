@@ -35,7 +35,7 @@ data class CustomGreetingState(
  * (the global top nav bar stays visible on every level):
  * NONE (normal tabs) -> MENU (settings menu list) -> PAGE (appearance settings).
  */
-enum class SettingsLevel { NONE, MENU, PAGE }
+enum class SettingsLevel { NONE, MENU, PAGE, LANGUAGE }
 
 /**
  * Single ViewModel backing the greeting feature (MVVM).
@@ -51,7 +51,7 @@ class GreetingViewModel @Inject constructor(
 ) : ViewModel() {
 
     val heroQuotes: List<HeroQuote> = greetingRepository.heroQuotes
-    val heroCaptions: List<String> = greetingRepository.heroCaptions
+    val heroCaptions: List<Int> = greetingRepository.heroCaptions
 
     private val _currentTab = MutableStateFlow(NavigationTab.CANVAS)
     val currentTab: StateFlow<NavigationTab> = _currentTab.asStateFlow()
@@ -163,10 +163,15 @@ class GreetingViewModel @Inject constructor(
         _settingsLevel.value = SettingsLevel.PAGE
     }
 
+    fun openLanguageSettings() {
+        _settingsLevel.value = SettingsLevel.LANGUAGE
+    }
+
     /** Steps one settings level back (PAGE -> MENU -> NONE). */
     fun backSettings() {
         when (_settingsLevel.value) {
             SettingsLevel.PAGE -> _settingsLevel.value = SettingsLevel.MENU
+            SettingsLevel.LANGUAGE -> _settingsLevel.value = SettingsLevel.MENU
             SettingsLevel.MENU -> _settingsLevel.value = SettingsLevel.NONE
             SettingsLevel.NONE -> Unit
         }

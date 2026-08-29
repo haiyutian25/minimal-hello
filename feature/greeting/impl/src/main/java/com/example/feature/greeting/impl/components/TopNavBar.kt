@@ -18,10 +18,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.R
 
 // ── Top nav bar dimensions ─────────────────────────────────────────────
 
@@ -78,7 +80,7 @@ fun ProductionTopNavBar(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.top_nav_cd_back),
                         tint = currentTheme.foreground,
                         modifier = Modifier.size(TopNavActionIconSize)
                     )
@@ -109,7 +111,7 @@ fun ProductionTopNavBar(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Menu,
-                        contentDescription = "Open Sidebar Menu",
+                        contentDescription = stringResource(R.string.top_nav_cd_open_sidebar),
                         tint = currentTheme.foreground,
                         modifier = Modifier.size(TopNavActionIconSize)
                     )

@@ -43,6 +43,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.R
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -341,7 +343,7 @@ fun AppSidebarContent(
                     }
                 }
                 Text(
-                    text = "Design Systems Lab",
+                    text = stringResource(R.string.sidebar_subtitle),
                     fontSize = SidebarSubtitleFontSize,
                     color = currentTheme.mutedForeground
                 )
@@ -366,7 +368,7 @@ fun AppSidebarContent(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Settings,
-                    contentDescription = "Settings",
+                    contentDescription = stringResource(R.string.sidebar_cd_settings),
                     tint = currentTheme.foreground,
                     modifier = Modifier.size(SidebarSettingsIconSize)
                 )

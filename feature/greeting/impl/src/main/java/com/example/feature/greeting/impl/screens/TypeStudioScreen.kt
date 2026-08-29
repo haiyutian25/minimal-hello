@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.CardButton
 import com.example.feature.greeting.impl.components.Slider
@@ -75,11 +77,13 @@ fun TypeStudioScreen(
     var letterSpacingSlider by remember { mutableFloatStateOf(-0.5f) }
     var isItalic by remember { mutableStateOf(false) }
 
+    val specimenCopiedToast = stringResource(R.string.type_studio_specimen_copied)
+
     val samplePhrases = listOf(
-        "Form follows function.",
-        "Simplicity is the ultimate sophistication.",
-        "Good design is as little design as possible.",
-        "The details are not the details. They make the design."
+        stringResource(R.string.type_studio_sample_1),
+        stringResource(R.string.type_studio_sample_2),
+        stringResource(R.string.type_studio_sample_3),
+        stringResource(R.string.type_studio_sample_4)
     )
     var selectedPhraseIndex by remember { mutableStateOf(0) }
 
@@ -99,7 +103,7 @@ fun TypeStudioScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "TYPE ENGINE",
+                text = stringResource(R.string.type_studio_type_engine),
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp,
@@ -119,7 +123,7 @@ fun TypeStudioScreen(
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "Italic",
+                        text = stringResource(R.string.type_studio_italic),
                         fontStyle = FontStyle.Italic,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
@@ -167,9 +171,9 @@ fun TypeStudioScreen(
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
                                 text = when (choice) {
-                                    AppTypographyChoice.EDITORIAL -> "Serif"
-                                    AppTypographyChoice.SANS -> "Sans"
-                                    AppTypographyChoice.MONO -> "Mono"
+                                    AppTypographyChoice.EDITORIAL -> stringResource(R.string.font_label_serif)
+                                    AppTypographyChoice.SANS -> stringResource(R.string.font_label_sans)
+                                    AppTypographyChoice.MONO -> stringResource(R.string.font_label_mono)
                                 },
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
@@ -202,7 +206,7 @@ fun TypeStudioScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = selectedTypography.title.uppercase(),
+                        text = stringResource(selectedTypography.titleRes).uppercase(),
                         fontFamily = FontFamily.Monospace,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -214,13 +218,13 @@ fun TypeStudioScreen(
                         onClick = {
                             val textToCopy = samplePhrases[selectedPhraseIndex]
                             context.copyToClipboard(textToCopy, label = "Typography Sample")
-                            Toast.makeText(context, "Specimen Copied", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, specimenCopiedToast, Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ContentCopy,
-                            contentDescription = "Copy text",
+                            contentDescription = stringResource(R.string.type_studio_cd_copy_text),
                             tint = currentTheme.mutedForeground,
                             modifier = Modifier.size(14.dp)
                         )
@@ -285,7 +289,7 @@ fun TypeStudioScreen(
                 Slider(
                     value = fontSizeSlider,
                     onValueChange = { fontSizeSlider = it },
-                    label = "Font Size",
+                    label = stringResource(R.string.type_studio_font_size),
                     valueText = "${fontSizeSlider.toInt()} sp",
                     valueRange = 24f..64f,
                     currentTheme = currentTheme
@@ -297,7 +301,7 @@ fun TypeStudioScreen(
                 Slider(
                     value = letterSpacingSlider,
                     onValueChange = { letterSpacingSlider = it },
-                    label = "Letter Spacing (Tracking)",
+                    label = stringResource(R.string.type_studio_letter_spacing),
                     valueText = "%.1f sp".format(letterSpacingSlider),
                     valueRange = -2.0f..4.0f,
                     currentTheme = currentTheme
@@ -309,7 +313,7 @@ fun TypeStudioScreen(
 
         // Section 4: Glyph Matrix Specimen
         Text(
-            text = "GLYPH SPECIMEN",
+            text = stringResource(R.string.type_studio_glyph_specimen),
             fontSize = 10.5.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.5.sp,

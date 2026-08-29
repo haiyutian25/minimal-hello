@@ -18,16 +18,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 
 /**
@@ -39,6 +42,7 @@ import com.example.feature.greeting.impl.components.Button
 fun SettingsMenuScreen(
     currentTheme: CssVariables,
     onOpenAppearance: () -> Unit,
+    onOpenLanguage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -52,7 +56,7 @@ fun SettingsMenuScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "MENU",
+            text = stringResource(R.string.settings_menu_label),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.5.sp,
@@ -90,14 +94,64 @@ fun SettingsMenuScreen(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Appearance & Themes",
+                        text = stringResource(R.string.settings_menu_appearance_title),
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = currentTheme.foreground
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Color modes, palettes, typography & CSS tokens",
+                        text = stringResource(R.string.settings_menu_appearance_subtitle),
+                        fontSize = 11.sp,
+                        color = currentTheme.mutedForeground
+                    )
+                }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = currentTheme.mutedForeground,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Entry: Language -> language selection page
+        Button(
+            onClick = { onOpenLanguage() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(currentTheme.radiusMd),
+            testTag = "settings_menu_language_entry"
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusMd))
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Language,
+                    contentDescription = null,
+                    tint = currentTheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.language_title),
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = currentTheme.foreground
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.language_menu_subtitle),
                         fontSize = 11.sp,
                         color = currentTheme.mutedForeground
                     )

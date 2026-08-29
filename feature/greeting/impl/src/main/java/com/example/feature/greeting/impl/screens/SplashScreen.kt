@@ -55,12 +55,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.R
 import kotlinx.coroutines.delay
 
 @Composable
@@ -70,14 +72,12 @@ fun SplashScreen(
     modifier: Modifier = Modifier
 ) {
     // Typewriter state tracking
-    val phrases = remember {
-        listOf(
-            "Initializing Minimal Studio Engine...",
-            "Loading CSS Variable Tokens...",
-            "Synthesizing Typographic Scale...",
-            "Hello, World."
-        )
-    }
+    val phrases = listOf(
+        stringResource(R.string.splash_phrase_1),
+        stringResource(R.string.splash_phrase_2),
+        stringResource(R.string.splash_phrase_3),
+        stringResource(R.string.splash_phrase_4)
+    )
 
     var phraseIndex by remember { mutableIntStateOf(0) }
     var displayedText by remember { mutableStateOf("") }
@@ -190,7 +190,7 @@ fun SplashScreen(
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = if (isAllCompleted) "Enter" else "Skip",
+                    text = if (isAllCompleted) stringResource(R.string.splash_enter) else stringResource(R.string.splash_skip),
                     fontSize = 11.5.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Medium,
@@ -198,7 +198,7 @@ fun SplashScreen(
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Skip to main page",
+                    contentDescription = stringResource(R.string.splash_cd_skip),
                     tint = currentTheme.mutedForeground,
                     modifier = Modifier.size(12.dp)
                 )
@@ -278,7 +278,7 @@ fun SplashScreen(
                     modifier = Modifier.size(13.dp)
                 )
                 Text(
-                    text = "STUDIO BOOTLOADER v2.4",
+                    text = stringResource(R.string.splash_bootloader),
                     fontFamily = FontFamily.Monospace,
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -306,7 +306,7 @@ fun SplashScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "PHASE 0${phraseIndex + 1} / 04",
+                            text = stringResource(R.string.splash_phase_format, phraseIndex + 1, phrases.size),
                             fontFamily = FontFamily.Monospace,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -325,7 +325,7 @@ fun SplashScreen(
                                     .background(if (isTypingComplete) currentTheme.primary else Color(0xFF22C55E))
                             )
                             Text(
-                                text = if (phraseIndex == phrases.lastIndex) "READY" else "EXEC",
+                                text = if (phraseIndex == phrases.lastIndex) stringResource(R.string.splash_ready) else stringResource(R.string.splash_exec),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 10.sp,
                                 color = currentTheme.mutedForeground
@@ -420,7 +420,7 @@ fun SplashScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Launch Studio Canvas",
+                        text = stringResource(R.string.splash_launch_canvas),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = currentTheme.primaryForeground

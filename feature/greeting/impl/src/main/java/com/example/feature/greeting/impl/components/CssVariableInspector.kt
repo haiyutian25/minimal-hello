@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.toHex
+import com.example.feature.greeting.impl.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -130,6 +132,7 @@ fun CssVariableInspectorSheet(
     val scope = rememberCoroutineScope()
     var isCopied by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) } // 0: CSS Code, 1: Variable Swatches
+    val copiedToast = stringResource(R.string.inspector_copied_toast)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -163,14 +166,14 @@ fun CssVariableInspectorSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "CSS Variables Inspector",
+                        text = stringResource(R.string.inspector_title),
                         fontSize = InspectorTitleFontSize,
                         fontWeight = FontWeight.SemiBold,
                         color = CssTheme.vars.cardForeground,
                         letterSpacing = InspectorTitleLetterSpacing
                     )
                     Text(
-                        text = "Tokenized Design System • ${currentTheme.name}",
+                        text = stringResource(R.string.inspector_subtitle, currentTheme.name),
                         fontSize = InspectorSubtitleFontSize,
                         color = CssTheme.vars.mutedForeground
                     )
@@ -182,7 +185,7 @@ fun CssVariableInspectorSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.inspector_cd_close),
                         tint = CssTheme.vars.mutedForeground
                     )
                 }
@@ -200,14 +203,14 @@ fun CssVariableInspectorSheet(
                 horizontalArrangement = Arrangement.spacedBy(InspectorTabSpacing)
             ) {
                 TabPill(
-                    title = "CSS Code",
+                    title = stringResource(R.string.inspector_tab_css_code),
                     icon = Icons.Outlined.Code,
                     isSelected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     modifier = Modifier.weight(1f).testTag("tab_css_code")
                 )
                 TabPill(
-                    title = "Tokens (${currentTheme.name.split(" ")[0]})",
+                    title = stringResource(R.string.inspector_tab_tokens, currentTheme.name.split(" ")[0]),
                     icon = Icons.Default.Tune,
                     isSelected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
@@ -250,7 +253,7 @@ fun CssVariableInspectorSheet(
                     onClick = {
                         context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
                         isCopied = true
-                        Toast.makeText(context, "CSS Variables Copied to Clipboard!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, copiedToast, Toast.LENGTH_SHORT).show()
                         scope.launch {
                             delay(2500)
                             isCopied = false
@@ -268,12 +271,12 @@ fun CssVariableInspectorSheet(
                 ) {
                     Icon(
                         imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                        contentDescription = "Copy CSS",
+                        contentDescription = stringResource(R.string.inspector_cd_copy_css),
                         modifier = Modifier.size(InspectorCopyIconSize)
                     )
                     Spacer(modifier = Modifier.width(InspectorCopyIconTextSpacing))
                     Text(
-                        text = if (isCopied) "CSS Copied!" else "Copy CSS Variables",
+                        text = if (isCopied) stringResource(R.string.inspector_css_copied) else stringResource(R.string.inspector_copy_css_variables),
                         fontWeight = FontWeight.Medium,
                         fontSize = InspectorCopyFontSize
                     )
@@ -281,7 +284,7 @@ fun CssVariableInspectorSheet(
             } else {
                 // Token Swatches and Live Accent Tuning
                 Text(
-                    text = "CSS Color Tokens",
+                    text = stringResource(R.string.inspector_css_color_tokens),
                     fontSize = InspectorSectionTitleFontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = CssTheme.vars.cardForeground
@@ -289,22 +292,22 @@ fun CssVariableInspectorSheet(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val tokens = listOf(
-                    Triple("--bg", currentTheme.background, "Canvas background"),
-                    Triple("--fg", currentTheme.foreground, "Primary text & elements"),
-                    Triple("--card", currentTheme.card, "Surface / card elevation"),
-                    Triple("--border", currentTheme.border, "Subtle structural border"),
-                    Triple("--primary", currentTheme.primary, "Key focal / interactive accent"),
-                    Triple("--muted", currentTheme.muted, "Subtle background container"),
-                    Triple("--muted-fg", currentTheme.mutedForeground, "Secondary / label text"),
-                    Triple("--accent", currentTheme.accent, "Interactive hover / secondary state"),
-                    Triple("--ring", currentTheme.ring, "Focus ring & active indicator")
+                    Triple("--bg", currentTheme.background, R.string.inspector_desc_bg),
+                    Triple("--fg", currentTheme.foreground, R.string.inspector_desc_fg),
+                    Triple("--card", currentTheme.card, R.string.inspector_desc_card),
+                    Triple("--border", currentTheme.border, R.string.inspector_desc_border),
+                    Triple("--primary", currentTheme.primary, R.string.inspector_desc_primary),
+                    Triple("--muted", currentTheme.muted, R.string.inspector_desc_muted),
+                    Triple("--muted-fg", currentTheme.mutedForeground, R.string.inspector_desc_muted_fg),
+                    Triple("--accent", currentTheme.accent, R.string.inspector_desc_accent),
+                    Triple("--ring", currentTheme.ring, R.string.inspector_desc_ring)
                 )
 
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    tokens.forEach { (tokenName, color, desc) ->
+                    tokens.forEach { (tokenName, color, descRes) ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -331,7 +334,7 @@ fun CssVariableInspectorSheet(
                                     color = CssTheme.vars.cardForeground
                                 )
                                 Text(
-                                    text = desc,
+                                    text = stringResource(descRes),
                                     fontSize = InspectorTokenDescFontSize,
                                     color = CssTheme.vars.mutedForeground
                                 )
@@ -350,7 +353,7 @@ fun CssVariableInspectorSheet(
 
                 // Live Accent Tuning
                 Text(
-                    text = "Live Override --primary Accent",
+                    text = stringResource(R.string.inspector_live_override),
                     fontSize = InspectorSectionTitleFontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = CssTheme.vars.cardForeground
@@ -394,7 +397,7 @@ fun CssVariableInspectorSheet(
                             if (currentTheme.primary == accentColor) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = stringResource(R.string.inspector_cd_selected),
                                     tint = if (accentColor == Color(0xFFFAFAFA)) Color.Black else Color.White,
                                     modifier = Modifier.size(InspectorAccentCheckIconSize)
                                 )

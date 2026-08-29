@@ -6,6 +6,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,14 +44,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.toHex
+import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.TokenSearchBar
+
+private data class TokenRow(
+    val prop: String,
+    val color: Color,
+    @StringRes val descRes: Int
+)
 
 /**
  * TokensScreen: Live CSS Design Tokens Matrix and interactive UI sandbox adhering to W3C CSS tokens specs.
@@ -65,19 +74,24 @@ fun TokensScreen(
     var searchQuery by remember { mutableStateOf("") }
     var interactiveCounter by remember { mutableStateOf(0) }
 
-    val tokensList = listOf(
-        Triple("--background", currentTheme.background, "Main screen surface canvas"),
-        Triple("--foreground", currentTheme.foreground, "Primary high-contrast typography"),
-        Triple("--primary", currentTheme.primary, "Brand accent & call-to-action color"),
-        Triple("--primary-foreground", currentTheme.primaryForeground, "Contrast text inside primary buttons"),
-        Triple("--card", currentTheme.card, "Elevated container surface"),
-        Triple("--muted", currentTheme.muted, "Subtle background fill for secondary items"),
-        Triple("--muted-foreground", currentTheme.mutedForeground, "Secondary editorial captions & labels"),
-        Triple("--border", currentTheme.border, "1px structural hairline divider"),
-        Triple("--ring", currentTheme.ring, "Focus and active halo indicator")
-    ).filter {
-        searchQuery.isEmpty() || it.first.contains(searchQuery, ignoreCase = true) || it.third.contains(searchQuery, ignoreCase = true)
-    }
+    val tokenCopiedToastFmt = stringResource(R.string.tokens_copied_toast)
+
+    val allTokens = listOf(
+        TokenRow("--background", currentTheme.background, R.string.tokens_desc_background),
+        TokenRow("--foreground", currentTheme.foreground, R.string.tokens_desc_foreground),
+        TokenRow("--primary", currentTheme.primary, R.string.tokens_desc_primary),
+        TokenRow("--primary-foreground", currentTheme.primaryForeground, R.string.tokens_desc_primary_foreground),
+        TokenRow("--card", currentTheme.card, R.string.tokens_desc_card),
+        TokenRow("--muted", currentTheme.muted, R.string.tokens_desc_muted),
+        TokenRow("--muted-foreground", currentTheme.mutedForeground, R.string.tokens_desc_muted_foreground),
+        TokenRow("--border", currentTheme.border, R.string.tokens_desc_border),
+        TokenRow("--ring", currentTheme.ring, R.string.tokens_desc_ring)
+    )
+    val tokensList = allTokens
+        .map { row -> row to stringResource(row.descRes) }
+        .filter { (row, desc) ->
+            searchQuery.isEmpty() || row.prop.contains(searchQuery, ignoreCase = true) || desc.contains(searchQuery, ignoreCase = true)
+        }
 
     Column(
         modifier = modifier
@@ -99,7 +113,7 @@ fun TokensScreen(
 
         // Section 1: Live Component Token Playground
         Text(
-            text = "LIVE TOKENIZED UI COMPONENTS",
+            text = stringResource(R.string.tokens_live_components),
             fontSize = 10.5.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.5.sp,
@@ -178,7 +192,7 @@ fun TokensScreen(
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "Badge Active",
+                            text = stringResource(R.string.tokens_badge_active),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = currentTheme.primary
@@ -193,7 +207,7 @@ fun TokensScreen(
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "Radius: ${currentTheme.radiusLg.value.toInt()}px",
+                            text = stringResource(R.string.tokens_radius) + ": ${currentTheme.radiusLg.value.toInt()}px",
                             fontFamily = FontFamily.Monospace,
                             fontSize = 10.5.sp,
                             color = currentTheme.mutedForeground
@@ -214,7 +228,7 @@ fun TokensScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "ACTIVE CSS TOKENS (${tokensList.size})",
+                text = stringResource(R.string.tokens_active_css_tokens, tokensList.size),
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp,
@@ -222,7 +236,7 @@ fun TokensScreen(
             )
 
             Text(
-                text = "Tap hex to copy",
+                text = stringResource(R.string.tokens_tap_hex_copy),
                 fontSize = 10.sp,
                 color = currentTheme.mutedForeground
             )
@@ -237,12 +251,12 @@ fun TokensScreen(
                 .background(currentTheme.card)
                 .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
         ) {
-            tokensList.forEachIndexed { index, (prop, color, desc) ->
-                val hexValue = "#" + color.toHex()
+            tokensList.forEachIndexed { index, (row, desc) ->
+                val hexValue = "#" + row.color.toHex()
                 Button(
                     onClick = {
-                        context.copyToClipboard(hexValue, label = prop)
-                        Toast.makeText(context, "$prop ($hexValue) Copied", Toast.LENGTH_SHORT).show()
+                        context.copyToClipboard(hexValue, label = row.prop)
+                        Toast.makeText(context, tokenCopiedToastFmt.format(row.prop, hexValue), Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -262,13 +276,13 @@ fun TokensScreen(
                             modifier = Modifier
                                 .size(22.dp)
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(color)
+                                .background(row.color)
                                 .border(1.dp, currentTheme.border, RoundedCornerShape(4.dp))
                         )
 
                         Column {
                             Text(
-                                text = prop,
+                                text = row.prop,
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -294,7 +308,7 @@ fun TokensScreen(
                         )
                         Icon(
                             imageVector = Icons.Outlined.ContentCopy,
-                            contentDescription = "Copy",
+                            contentDescription = stringResource(R.string.tokens_cd_copy),
                             tint = currentTheme.mutedForeground,
                             modifier = Modifier.size(12.dp)
                         )

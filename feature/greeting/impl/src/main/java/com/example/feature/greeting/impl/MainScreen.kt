@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.example.feature.greeting.impl.components.CssVariableInspectorSheet
 import com.example.feature.greeting.impl.components.NavigationTab
 import com.example.feature.greeting.impl.components.ProductionBottomNavBar
@@ -19,6 +20,7 @@ import com.example.feature.greeting.impl.components.ProductionTopNavBar
 import com.example.feature.greeting.impl.components.SidebarDrawer
 import com.example.feature.greeting.impl.components.SidebarEdgeZone
 import com.example.feature.greeting.impl.screens.CanvasScreen
+import com.example.feature.greeting.impl.screens.LanguageScreen
 import com.example.feature.greeting.impl.screens.SettingsMenuScreen
 import com.example.feature.greeting.impl.screens.SettingsScreen
 import com.example.feature.greeting.impl.screens.TokensScreen
@@ -72,8 +74,9 @@ fun MainScreen(
                         currentTheme = currentTheme,
                         onOpenSidebar = viewModel::toggleSidebar,
                         pageTitle = when (settingsLevel) {
-                            SettingsLevel.MENU -> "Settings"
-                            SettingsLevel.PAGE -> "Appearance & Themes"
+                            SettingsLevel.MENU -> stringResource(R.string.settings_page_title)
+                            SettingsLevel.PAGE -> stringResource(R.string.settings_menu_appearance_title)
+                            SettingsLevel.LANGUAGE -> stringResource(R.string.language_title)
                             SettingsLevel.NONE -> null
                         },
                         onBack = { viewModel.backSettings() }
@@ -87,6 +90,11 @@ fun MainScreen(
                     SettingsLevel.MENU -> SettingsMenuScreen(
                         currentTheme = currentTheme,
                         onOpenAppearance = viewModel::openAppearanceSettings,
+                        onOpenLanguage = viewModel::openLanguageSettings,
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                    SettingsLevel.LANGUAGE -> LanguageScreen(
+                        currentTheme = currentTheme,
                         modifier = Modifier.padding(innerPadding)
                     )
                     SettingsLevel.PAGE -> SettingsScreen(

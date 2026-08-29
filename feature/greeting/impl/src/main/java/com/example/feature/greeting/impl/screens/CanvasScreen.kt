@@ -1,6 +1,7 @@
 package com.example.feature.greeting.impl.screens
 
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
@@ -69,6 +70,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -79,6 +81,7 @@ import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
+import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.core.ui.theme.toHex
 import com.example.core.ui.util.copyToClipboard
@@ -86,10 +89,10 @@ import com.example.feature.greeting.impl.GreetingViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private enum class TypographyStyle(val label: String, val font: FontFamily) {
-    EDITORIAL("Serif", FontFamily.Serif),
-    SANS("Sans", FontFamily.SansSerif),
-    MONO("Mono", FontFamily.Monospace)
+private enum class TypographyStyle(@StringRes val labelRes: Int, val font: FontFamily) {
+    EDITORIAL(R.string.font_label_serif, FontFamily.Serif),
+    SANS(R.string.font_label_sans, FontFamily.SansSerif),
+    MONO(R.string.font_label_mono, FontFamily.Monospace)
 }
 
 /**
@@ -104,6 +107,8 @@ fun CanvasScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    val cssCopiedToast = stringResource(R.string.canvas_css_copied_toast)
 
     val currentTheme by viewModel.currentTheme.collectAsState()
     val typographyChoice by viewModel.typographyChoice.collectAsState()
@@ -159,7 +164,7 @@ fun CanvasScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "DESIGN TOKENS",
+                    text = stringResource(R.string.canvas_section_design_tokens),
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,
@@ -206,7 +211,7 @@ fun CanvasScreen(
                         modifier = Modifier.size(11.dp)
                     )
                     Text(
-                        text = "Inspect CSS",
+                        text = stringResource(R.string.canvas_inspect_css),
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Medium,
                         color = currentTheme.foreground
@@ -338,9 +343,9 @@ fun CanvasScreen(
             Pair(customGreeting.part1, customGreeting.part2)
         } else {
             val quote = heroQuotes[greetingIndex % heroQuotes.size]
-            Pair(quote.part1, quote.part2)
+            Pair(stringResource(quote.part1Res), stringResource(quote.part2Res))
         }
-        val activeCaption = heroCaptions[greetingIndex % heroCaptions.size]
+        val activeCaption = stringResource(heroCaptions[greetingIndex % heroCaptions.size])
 
         val heroScale by animateFloatAsState(
             targetValue = if (isGreetingPressed) 0.985f else 1.0f,
@@ -392,7 +397,7 @@ fun CanvasScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "SAMPLE APPLICATION",
+                        text = stringResource(R.string.canvas_sample_application),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 3.sp,
@@ -520,7 +525,7 @@ fun CanvasScreen(
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = "Tap canvas to cycle statements",
+                            text = stringResource(R.string.canvas_tap_to_cycle),
                             fontFamily = FontFamily.Monospace,
                             fontSize = 10.5.sp,
                             color = currentTheme.mutedForeground
@@ -538,7 +543,7 @@ fun CanvasScreen(
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = if (showCustomGreetingInput) "Close edit" else "Custom text",
+                                text = if (showCustomGreetingInput) stringResource(R.string.canvas_close_edit) else stringResource(R.string.canvas_custom_text),
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = currentTheme.primary
@@ -565,7 +570,7 @@ fun CanvasScreen(
                     .padding(14.dp)
             ) {
                 Text(
-                    text = "CUSTOM GREETING",
+                    text = stringResource(R.string.canvas_custom_greeting),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 2.sp,
@@ -667,7 +672,7 @@ fun CanvasScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = style.label,
+                            text = stringResource(style.labelRes),
                             fontFamily = style.font,
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
@@ -703,7 +708,7 @@ fun CanvasScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "CSS Variables",
+                        text = stringResource(R.string.canvas_css_variables),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = currentTheme.foreground,
@@ -716,7 +721,7 @@ fun CanvasScreen(
                     onClick = {
                         context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
                         isCopied = true
-                        Toast.makeText(context, "CSS Variables Copied", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, cssCopiedToast, Toast.LENGTH_SHORT).show()
                         scope.launch {
                             delay(1800)
                             isCopied = false
@@ -734,13 +739,13 @@ fun CanvasScreen(
                     ) {
                         Icon(
                             imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                            contentDescription = "Copy",
+                            contentDescription = stringResource(R.string.canvas_cd_copy),
                             tint = if (isCopied) currentTheme.primary else currentTheme.mutedForeground,
                             modifier = Modifier.size(11.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (isCopied) "Copied" else "Copy CSS",
+                            text = if (isCopied) stringResource(R.string.canvas_copied) else stringResource(R.string.canvas_copy_css),
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Medium,
                             color = if (isCopied) currentTheme.primary else currentTheme.mutedForeground

@@ -1,5 +1,6 @@
 package com.example.feature.greeting.impl.screens
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,20 +37,30 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
+import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.CardButton
 
-enum class AppTypographyChoice(val title: String, val subtitle: String, val font: FontFamily) {
-    EDITORIAL("Editorial Serif", "Playfair / Georgia style", FontFamily.Serif),
-    SANS("Modern Sans", "Inter / SF Pro style", FontFamily.SansSerif),
-    MONO("Technical Mono", "Geist Mono / Fira style", FontFamily.Monospace)
+enum class AppTypographyChoice(@StringRes val titleRes: Int, @StringRes val subtitleRes: Int, val font: FontFamily) {
+    EDITORIAL(R.string.settings_typography_editorial_title, R.string.settings_typography_editorial_subtitle, FontFamily.Serif),
+    SANS(R.string.settings_typography_sans_title, R.string.settings_typography_sans_subtitle, FontFamily.SansSerif),
+    MONO(R.string.settings_typography_mono_title, R.string.settings_typography_mono_subtitle, FontFamily.Monospace)
 }
+
+private data class PaletteEntry(
+    val baseKey: String,
+    @StringRes val nameRes: Int,
+    @StringRes val subtitleRes: Int,
+    val light: CssVariables,
+    val dark: CssVariables
+)
 
 @Composable
 fun SettingsScreen(
@@ -70,12 +81,12 @@ fun SettingsScreen(
     }
 
     val paletteList = listOf(
-        Triple("Editorial Aesthetic", "Warm paper & classical serif elegance", ProductionPalettes.EditorialLight to ProductionPalettes.EditorialDark),
-        Triple("Geist Minimal", "Vercel high-contrast pure monochrome", ProductionPalettes.GeistLight to ProductionPalettes.GeistDark),
-        Triple("Linear Obsidian", "Deep space indigo & precise engineering", ProductionPalettes.LinearLight to ProductionPalettes.LinearDark),
-        Triple("Shadcn Zinc", "Balanced zinc neutrals & modern UI", ProductionPalettes.ShadcnZincLight to ProductionPalettes.ShadcnZincDark),
-        Triple("Notion Warm", "Wabi-sabi oat tone & quiet clarity", ProductionPalettes.NotionWarmLight to ProductionPalettes.NotionWarmDark),
-        Triple("Braun Dieter Rams", "Industrial orange accent & honest design", ProductionPalettes.DieterRamsLight to ProductionPalettes.DieterRamsDark)
+        PaletteEntry("Editorial", R.string.settings_palette_editorial_name, R.string.settings_palette_editorial_subtitle, ProductionPalettes.EditorialLight, ProductionPalettes.EditorialDark),
+        PaletteEntry("Geist", R.string.settings_palette_geist_name, R.string.settings_palette_geist_subtitle, ProductionPalettes.GeistLight, ProductionPalettes.GeistDark),
+        PaletteEntry("Linear", R.string.settings_palette_linear_name, R.string.settings_palette_linear_subtitle, ProductionPalettes.LinearLight, ProductionPalettes.LinearDark),
+        PaletteEntry("Shadcn", R.string.settings_palette_shadcn_name, R.string.settings_palette_shadcn_subtitle, ProductionPalettes.ShadcnZincLight, ProductionPalettes.ShadcnZincDark),
+        PaletteEntry("Notion", R.string.settings_palette_notion_name, R.string.settings_palette_notion_subtitle, ProductionPalettes.NotionWarmLight, ProductionPalettes.NotionWarmDark),
+        PaletteEntry("Braun", R.string.settings_palette_braun_name, R.string.settings_palette_braun_subtitle, ProductionPalettes.DieterRamsLight, ProductionPalettes.DieterRamsDark)
     )
 
     Column(
@@ -92,7 +103,7 @@ fun SettingsScreen(
             // SECTION 1: Color Mode (Light / Dark)
             // ==========================================
             SettingsSectionHeader(
-                title = "COLOR SCHEME & MODE",
+                title = stringResource(R.string.settings_section_color_mode),
                 icon = Icons.Outlined.Contrast,
                 currentTheme = currentTheme
             )
@@ -167,13 +178,13 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "Light Canvas",
+                            text = stringResource(R.string.settings_mode_light_title),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = currentTheme.foreground
                         )
                         Text(
-                            text = "Clean paper tone",
+                            text = stringResource(R.string.settings_mode_light_subtitle),
                             fontSize = 11.sp,
                             color = currentTheme.mutedForeground
                         )
@@ -243,13 +254,13 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "Dark / OLED",
+                            text = stringResource(R.string.settings_mode_dark_title),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = currentTheme.foreground
                         )
                         Text(
-                            text = "Deep contrast",
+                            text = stringResource(R.string.settings_mode_dark_subtitle),
                             fontSize = 11.sp,
                             color = currentTheme.mutedForeground
                         )
@@ -263,7 +274,7 @@ fun SettingsScreen(
             // SECTION 2: Production Palette Presets List
             // ==========================================
             SettingsSectionHeader(
-                title = "CURATED DESIGN PALETTES",
+                title = stringResource(R.string.settings_section_palettes),
                 icon = Icons.Outlined.Palette,
                 currentTheme = currentTheme
             )
@@ -278,14 +289,14 @@ fun SettingsScreen(
                     .background(currentTheme.card)
                     .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
             ) {
-                paletteList.forEachIndexed { index, (name, subtitle, variants) ->
-                    val isSelected = currentPresetBase == name.split(" ").first()
-                    val targetTheme = if (currentTheme.isDark) variants.second else variants.first
+                paletteList.forEachIndexed { index, entry ->
+                    val isSelected = currentPresetBase == entry.baseKey
+                    val targetTheme = if (currentTheme.isDark) entry.dark else entry.light
 
                     Button(
                         onClick = { onThemeChange(targetTheme) },
                         modifier = Modifier.fillMaxWidth(),
-                        testTag = "settings_palette_item_$name"
+                        testTag = "settings_palette_item_${entry.baseKey}"
                     ) {
                     Row(
                         modifier = Modifier
@@ -325,13 +336,13 @@ fun SettingsScreen(
 
                             Column {
                                 Text(
-                                    text = name,
+                                    text = stringResource(entry.nameRes),
                                     fontSize = 13.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = currentTheme.foreground
                                 )
                                 Text(
-                                    text = subtitle,
+                                    text = stringResource(entry.subtitleRes),
                                     fontSize = 11.sp,
                                     color = currentTheme.mutedForeground
                                 )
@@ -375,7 +386,7 @@ fun SettingsScreen(
             // SECTION 3: Typography Style
             // ==========================================
             SettingsSectionHeader(
-                title = "TYPOGRAPHY ENGINE",
+                title = stringResource(R.string.settings_section_typography),
                 icon = Icons.Outlined.FormatSize,
                 currentTheme = currentTheme
             )
@@ -419,14 +430,14 @@ fun SettingsScreen(
 
                             Column {
                                 Text(
-                                    text = style.title,
+                                    text = stringResource(style.titleRes),
                                     fontFamily = style.font,
                                     fontSize = 13.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = currentTheme.foreground
                                 )
                                 Text(
-                                    text = style.subtitle,
+                                    text = stringResource(style.subtitleRes),
                                     fontSize = 10.5.sp,
                                     color = currentTheme.mutedForeground
                                 )

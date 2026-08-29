@@ -1,5 +1,6 @@
 package com.example.feature.greeting.impl.components
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
@@ -50,12 +51,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.R
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -64,15 +67,15 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 enum class NavigationTab(
-    val title: String,
+    @StringRes val titleRes: Int,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
     val testTag: String
 ) {
-    CANVAS("Canvas", Icons.Filled.Home, Icons.Outlined.Home, "bottom_tab_canvas"),
-    TYPOGRAPHY("Type", Icons.Filled.FormatSize, Icons.Outlined.FormatSize, "bottom_tab_typography"),
-    TOKENS("Tokens", Icons.Filled.Code, Icons.Outlined.Code, "bottom_tab_tokens"),
-    SETTINGS("Settings", Icons.Filled.Settings, Icons.Outlined.Settings, "bottom_tab_settings")
+    CANVAS(R.string.nav_tab_canvas, Icons.Filled.Home, Icons.Outlined.Home, "bottom_tab_canvas"),
+    TYPOGRAPHY(R.string.nav_tab_typography, Icons.Filled.FormatSize, Icons.Outlined.FormatSize, "bottom_tab_typography"),
+    TOKENS(R.string.nav_tab_tokens, Icons.Filled.Code, Icons.Outlined.Code, "bottom_tab_tokens"),
+    SETTINGS(R.string.nav_tab_settings, Icons.Filled.Settings, Icons.Outlined.Settings, "bottom_tab_settings")
 }
 
 /** Page settle animation timing for swipe tab switching. */
@@ -226,12 +229,12 @@ fun ProductionBottomNavBar(
                         ) {
                             Icon(
                                 imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                contentDescription = tab.title,
+                                contentDescription = stringResource(tab.titleRes),
                                 tint = iconColor,
                                 modifier = Modifier.size(TabIconSize)
                             )
                             Text(
-                                text = tab.title,
+                                text = stringResource(tab.titleRes),
                                 fontSize = TabLabelFontSize,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = textColor,

@@ -12,9 +12,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
+import com.example.feature.greeting.impl.R
 
 // ── Search bar dimensions ──────────────────────────────────────────────
 
@@ -31,17 +33,18 @@ fun TokenSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     currentTheme: CssVariables,
-    placeholder: String = "Filter CSS variable tokens...",
+    placeholder: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val resolvedPlaceholder = placeholder ?: stringResource(R.string.tokens_search_placeholder)
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text(placeholder, fontSize = SearchPlaceholderFontSize, color = currentTheme.mutedForeground) },
+        placeholder = { Text(resolvedPlaceholder, fontSize = SearchPlaceholderFontSize, color = currentTheme.mutedForeground) },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Outlined.Search,
-                contentDescription = "Search",
+                contentDescription = stringResource(R.string.tokens_cd_search),
                 tint = currentTheme.mutedForeground,
                 modifier = Modifier.size(SearchLeadingIconSize)
             )
