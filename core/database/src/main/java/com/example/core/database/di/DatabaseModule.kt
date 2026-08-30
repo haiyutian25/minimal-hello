@@ -31,11 +31,18 @@ object DatabaseModule {
         }
     }
 
+    /** v3 -> v4: add the active custom-font column (defaults to none/system engine). */
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE user_preferences ADD COLUMN activeCustomFontId TEXT NOT NULL DEFAULT ''")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
     @Provides

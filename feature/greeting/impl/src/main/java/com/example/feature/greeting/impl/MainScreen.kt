@@ -48,6 +48,9 @@ fun MainScreen(
     val fontScale by viewModel.fontScale.collectAsState()
     val colorMode by viewModel.colorMode.collectAsState()
     val settingsLevel by viewModel.settingsLevel.collectAsState()
+    val installedFonts by viewModel.installedFonts.collectAsState()
+    val activeCustomFontId by viewModel.activeCustomFontId.collectAsState()
+    val downloadProgress by viewModel.downloadProgress.collectAsState()
 
     val animatedBg by animateColorAsState(
         targetValue = currentTheme.background,
@@ -120,6 +123,14 @@ fun MainScreen(
                         onTypographyChange = viewModel::selectTypography,
                         fontScale = fontScale,
                         onOpenFontSize = viewModel::openFontSizeSettings,
+                        installedFonts = installedFonts,
+                        activeCustomFontId = activeCustomFontId,
+                        downloadProgress = downloadProgress,
+                        fontFamilyFor = viewModel::customFontFamily,
+                        onSelectCustomFont = viewModel::selectCustomFont,
+                        onDeleteCustomFont = viewModel::deleteFont,
+                        onDownloadFont = viewModel::downloadFont,
+                        onImportFont = viewModel::importFont,
                         modifier = Modifier.padding(innerPadding)
                     )
                     SettingsLevel.FONT_SIZE -> FontSizeScreen(

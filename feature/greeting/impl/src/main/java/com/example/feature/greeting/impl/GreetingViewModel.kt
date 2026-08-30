@@ -2,7 +2,9 @@ package com.example.feature.greeting.impl
 
 import android.content.Context
 import android.content.res.Configuration
+import android.net.Uri
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.data.model.ColorMode
@@ -13,15 +15,21 @@ import com.example.core.data.repository.UserPreferencesRepository
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ThemeResolver
 import com.example.feature.greeting.impl.components.NavigationTab
+import com.example.feature.greeting.impl.fonts.CustomFontRepository
+import com.example.feature.greeting.impl.fonts.InstalledFont
+import com.example.feature.greeting.impl.fonts.PresetFont
 import com.example.feature.greeting.impl.screens.AppTypographyChoice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -52,6 +60,7 @@ enum class SettingsLevel { NONE, MENU, PAGE, LANGUAGE, FONT, FONT_SIZE }
 class GreetingViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val customFontRepository: CustomFontRepository,
     greetingRepository: GreetingRepository,
 ) : ViewModel() {
 
@@ -106,6 +115,27 @@ class GreetingViewModel @Inject constructor(
     private val _fontScale = MutableStateFlow(UserPreferences.DEFAULT.fontScale)
     val fontScale: StateFlow<Float> = _fontScale.asStateFlow()
 
+    private val _activeCustomFontId = MutableStateFlow(UserPreferences.DEFAULT.activeCustomFontId)
+    val activeCustomFontId: StateFlow<String> = _activeCustomFontId.asStateFlow()
+
+    /** Installed custom fonts (downloaded presets + user imports). */
+    val installedFonts: StateFlow<List<InstalledFont>> = customFontRepository.installedVersion
+        .map { customFontRepository.installedFonts() }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** fontId -> live download progress (0f..1f) while a preset is downloading. */
+    val downloadProgress: StateFlow<Map<String, Float>> = customFontRepository.downloadProgress
+
+    /**
+     * The app-wide content font. Resolves to the active custom font when one is
+     * selected and installed, otherwise falls back to the system typography engine.
+     */
+    val activeContentFont: StateFlow<FontFamily> =
+        combine(_typographyChoice, _activeCustomFontId) { choice, customFontId ->
+            customFontRepository.fontFamilyFor(customFontId) ?: choice.font
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, AppTypographyChoice.EDITORIAL.font)
+
     private val _greetingIndex = MutableStateFlow(0)
     val greetingIndex: StateFlow<Int> = _greetingIndex.asStateFlow()
 
@@ -124,6 +154,7 @@ class GreetingViewModel @Inject constructor(
                     .firstOrNull { it.name == prefs.typographyChoice }
                     ?: AppTypographyChoice.EDITORIAL
                 _fontScale.value = prefs.fontScale
+                _activeCustomFontId.value = prefs.activeCustomFontId
             }
         }
     }
@@ -167,8 +198,44 @@ class GreetingViewModel @Inject constructor(
 
     fun selectTypography(choice: AppTypographyChoice) {
         _typographyChoice.value = choice
-        viewModelScope.launch { userPreferencesRepository.updateTypography(choice.name) }
+        // Selecting a system engine clears any custom-font override.
+        _activeCustomFontId.value = ""
+        viewModelScope.launch {
+            userPreferencesRepository.updateTypography(choice.name)
+            userPreferencesRepository.updateActiveCustomFont("")
+        }
     }
+
+    /** Selects an installed custom font as the app-wide content font. */
+    fun selectCustomFont(fontId: String) {
+        _activeCustomFontId.value = fontId
+        viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont(fontId) }
+    }
+
+    /** Starts downloading a preset font; progress is exposed via [downloadProgress]. */
+    fun downloadFont(preset: PresetFont) {
+        viewModelScope.launch { customFontRepository.downloadPreset(preset) }
+    }
+
+    /** Deletes an installed font, clearing it if it was the active selection. */
+    fun deleteFont(fontId: String) {
+        if (_activeCustomFontId.value == fontId) {
+            _activeCustomFontId.value = ""
+            viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont("") }
+        }
+        customFontRepository.deleteFont(fontId)
+    }
+
+    /** Imports a user-picked font file and makes it the active content font. */
+    fun importFont(uri: Uri, fallbackName: String) {
+        viewModelScope.launch {
+            val fontId = customFontRepository.importFont(uri, fallbackName)
+            if (fontId != null) selectCustomFont(fontId)
+        }
+    }
+
+    /** Resolves an installed custom font to a [FontFamily] for UI previews. */
+    fun customFontFamily(fontId: String): FontFamily? = customFontRepository.fontFamilyFor(fontId)
 
     /** Sets the app-wide font scale and persists it. */
     fun setFontScale(scale: Float) {

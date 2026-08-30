@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val viewModel: GreetingViewModel = hiltViewModel()
             val currentTheme by viewModel.currentTheme.collectAsState()
-            val typographyChoice by viewModel.typographyChoice.collectAsState()
+            val activeContentFont by viewModel.activeContentFont.collectAsState()
             val fontScale by viewModel.fontScale.collectAsState()
 
             // Keep the view model's system dark-mode state in sync so the
@@ -40,11 +40,12 @@ class MainActivity : AppCompatActivity() {
                 viewModel.setSystemDarkMode(isSystemDark)
             }
 
-            // Broadcast the user's chosen content font and font scale to the
-            // whole tree. fontScale multiplies every .sp text size app-wide.
+            // Broadcast the resolved content font (system engine or an installed
+            // custom font) and font scale to the whole tree. fontScale multiplies
+            // every .sp text size app-wide.
             val baseDensity = LocalDensity.current
             CompositionLocalProvider(
-                LocalContentFontFamily provides typographyChoice.font,
+                LocalContentFontFamily provides activeContentFont,
                 LocalDensity provides Density(density = baseDensity.density, fontScale = fontScale)
             ) {
                 MinimalTheme(cssVars = currentTheme) {

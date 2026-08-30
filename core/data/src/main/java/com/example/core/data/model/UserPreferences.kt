@@ -8,6 +8,7 @@ data class UserPreferences(
     val typographyChoice: String,
     val colorMode: String,
     val fontScale: Float,
+    val activeCustomFontId: String,
 ) {
     companion object {
         val DEFAULT = UserPreferences(
@@ -15,6 +16,7 @@ data class UserPreferences(
             typographyChoice = "EDITORIAL",
             colorMode = ColorMode.SYSTEM.id,
             fontScale = 1.0f,
+            activeCustomFontId = "",
         )
     }
 }

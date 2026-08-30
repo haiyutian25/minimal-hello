@@ -13,6 +13,7 @@ data class UserPreferencesEntity(
     val typographyChoice: String,
     val colorMode: String,
     val fontScale: Float,
+    val activeCustomFontId: String,
 ) {
     companion object {
         const val SINGLE_ROW_ID = 0

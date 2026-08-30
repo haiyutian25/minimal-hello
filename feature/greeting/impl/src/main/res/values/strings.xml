@@ -49,6 +49,17 @@
     <string name="settings_typography_mono_title">Technical Mono</string>
     <string name="settings_typography_mono_subtitle">Geist Mono / Fira style</string>
 
+    <!-- Custom fonts -->
+    <string name="settings_section_custom_fonts">CUSTOM FONTS</string>
+    <string name="settings_section_font_library">FONT LIBRARY</string>
+    <string name="settings_custom_fonts_upload">Upload Font</string>
+    <string name="settings_custom_fonts_upload_subtitle">Import a .ttf or .otf file</string>
+    <string name="settings_custom_fonts_empty">No custom fonts yet. Download from the library or upload your own.</string>
+    <string name="settings_font_download">Download</string>
+    <string name="settings_font_downloading">Downloading…</string>
+    <string name="settings_font_delete_cd">Delete font</string>
+    <string name="settings_font_badge_uploaded">Uploaded</string>
+
     <!-- Font size -->
     <string name="settings_font_size_label">Font Size</string>
 

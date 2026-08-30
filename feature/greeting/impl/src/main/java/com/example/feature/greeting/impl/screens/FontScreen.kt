@@ -1,8 +1,12 @@
 package com.example.feature.greeting.impl.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +26,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,6 +48,9 @@ import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
+import com.example.feature.greeting.impl.fonts.InstalledFont
+import com.example.feature.greeting.impl.fonts.PresetFont
+import com.example.feature.greeting.impl.fonts.PresetFontCatalog
 import kotlin.math.roundToInt
 
 /**
@@ -52,9 +63,21 @@ enum class AppTypographyChoice(@StringRes val titleRes: Int, @StringRes val subt
     MONO(R.string.settings_typography_mono_title, R.string.settings_typography_mono_subtitle, FontFamily.Monospace)
 }
 
+/** Accepted MIME types for the system font picker. */
+private val FontPickerMimeTypes = arrayOf(
+    "font/ttf",
+    "font/otf",
+    "font/*",
+    "application/x-font-ttf",
+    "application/x-font-otf",
+    "application/octet-stream",
+    "*/*"
+)
+
 /**
- * Dedicated font settings page: the typography engine (font family) picker and
- * an entry that opens the font-size adjustment page.
+ * Dedicated font settings page: the system typography engine, user-installed
+ * custom fonts (upload / download / select / delete), a downloadable font
+ * library, and an entry that opens the font-size adjustment page.
  */
 @Composable
 fun FontScreen(
@@ -63,8 +86,22 @@ fun FontScreen(
     onTypographyChange: (AppTypographyChoice) -> Unit,
     fontScale: Float,
     onOpenFontSize: () -> Unit,
+    installedFonts: List<InstalledFont>,
+    activeCustomFontId: String,
+    downloadProgress: Map<String, Float>,
+    fontFamilyFor: (String) -> FontFamily?,
+    onSelectCustomFont: (String) -> Unit,
+    onDeleteCustomFont: (String) -> Unit,
+    onDownloadFont: (PresetFont) -> Unit,
+    onImportFont: (Uri, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val fontPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) onImportFont(uri, "font.ttf")
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -76,7 +113,7 @@ fun FontScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // ==========================================
-        // SECTION 1: Typography engine (font family)
+        // SECTION 1: Typography engine (system fonts)
         // ==========================================
         FontSectionHeader(
             title = stringResource(R.string.settings_section_typography),
@@ -94,7 +131,8 @@ fun FontScreen(
                 .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
         ) {
             AppTypographyChoice.values().forEachIndexed { index, style ->
-                val isSelected = selectedTypography == style
+                // A system engine reads as selected only while no custom font overrides it.
+                val isSelected = activeCustomFontId.isEmpty() && selectedTypography == style
 
                 Button(
                     onClick = { onTypographyChange(style) },
@@ -149,13 +187,7 @@ fun FontScreen(
                 }
 
                 if (index < AppTypographyChoice.values().size - 1) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .height(0.5.dp)
-                            .background(currentTheme.border.copy(alpha = 0.5f))
-                    )
+                    FontRowDivider(currentTheme)
                 }
             }
         }
@@ -163,7 +195,283 @@ fun FontScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // ==========================================
-        // SECTION 2: Font size -> dedicated adjust page
+        // SECTION 2: Custom fonts (installed)
+        // ==========================================
+        FontSectionHeader(
+            title = stringResource(R.string.settings_section_custom_fonts),
+            icon = Icons.Outlined.UploadFile,
+            currentTheme = currentTheme
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Upload entry: opens the system document picker for a .ttf / .otf file.
+        Button(
+            onClick = { fontPickerLauncher.launch(FontPickerMimeTypes) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(currentTheme.radiusMd),
+            testTag = "font_upload_entry"
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusMd))
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.UploadFile,
+                    contentDescription = null,
+                    tint = currentTheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_custom_fonts_upload),
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = currentTheme.foreground
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.settings_custom_fonts_upload_subtitle),
+                        fontSize = 11.sp,
+                        color = currentTheme.mutedForeground
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (installedFonts.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(currentTheme.radiusMd))
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusMd))
+                    .padding(horizontal = 16.dp, vertical = 18.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_custom_fonts_empty),
+                    fontSize = 12.sp,
+                    color = currentTheme.mutedForeground
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(currentTheme.radiusLg))
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
+            ) {
+                installedFonts.forEachIndexed { index, font ->
+                    val isActive = activeCustomFontId == font.id
+                    val uploadedBadge = if (!font.isPreset) stringResource(R.string.settings_font_badge_uploaded) else null
+                    val subtitle = if (uploadedBadge != null) {
+                        "${formatSize(font.sizeBytes)}  •  $uploadedBadge"
+                    } else {
+                        formatSize(font.sizeBytes)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectCustomFont(font.id) }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "Aa",
+                                fontFamily = fontFamilyFor(font.id) ?: FontFamily.Default,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isActive) currentTheme.primary else currentTheme.mutedForeground,
+                                modifier = Modifier.width(26.dp)
+                            )
+
+                            Column {
+                                Text(
+                                    text = font.displayName,
+                                    fontSize = 13.5.sp,
+                                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                                    color = currentTheme.foreground
+                                )
+                                Text(
+                                    text = subtitle,
+                                    fontSize = 10.5.sp,
+                                    color = currentTheme.mutedForeground
+                                )
+                            }
+                        }
+
+                        if (isActive) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = currentTheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clickable { onDeleteCustomFont(font.id) }
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = stringResource(R.string.settings_font_delete_cd),
+                                tint = currentTheme.mutedForeground,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    if (index < installedFonts.size - 1) {
+                        FontRowDivider(currentTheme)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ==========================================
+        // SECTION 3: Font library (downloadable presets)
+        // ==========================================
+        val downloadable = PresetFontCatalog.ALL.filter { preset ->
+            installedFonts.none { it.fileName == preset.fileName }
+        }
+        if (downloadable.isNotEmpty()) {
+            FontSectionHeader(
+                title = stringResource(R.string.settings_section_font_library),
+                icon = Icons.Outlined.CloudDownload,
+                currentTheme = currentTheme
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(currentTheme.radiusLg))
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
+            ) {
+                downloadable.forEachIndexed { index, preset ->
+                    val progress = downloadProgress[preset.fileName]
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "Aa",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = currentTheme.mutedForeground,
+                                modifier = Modifier.width(26.dp)
+                            )
+
+                            Column {
+                                Text(
+                                    text = preset.displayName,
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = currentTheme.foreground
+                                )
+                                Text(
+                                    text = formatSize(preset.sizeBytes),
+                                    fontSize = 10.5.sp,
+                                    color = currentTheme.mutedForeground
+                                )
+                            }
+                        }
+
+                        if (progress != null) {
+                            Column(
+                                modifier = Modifier.width(96.dp),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                LinearProgressIndicator(
+                                    progress = { progress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(4.dp),
+                                    color = currentTheme.primary,
+                                    trackColor = currentTheme.border
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${(progress * 100).roundToInt()}%",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 10.sp,
+                                    color = currentTheme.primary
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = { onDownloadFont(preset) },
+                                shape = RoundedCornerShape(currentTheme.radiusMd),
+                                testTag = "font_download_${preset.id}"
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .background(currentTheme.subtleSurface)
+                                        .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusMd))
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CloudDownload,
+                                        contentDescription = null,
+                                        tint = currentTheme.primary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.settings_font_download),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = currentTheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (index < downloadable.size - 1) {
+                        FontRowDivider(currentTheme)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // ==========================================
+        // SECTION 4: Font size -> dedicated adjust page
         // ==========================================
         FontSectionHeader(
             title = stringResource(R.string.settings_section_font_size),
@@ -252,4 +560,22 @@ private fun FontSectionHeader(
             color = currentTheme.mutedForeground
         )
     }
+}
+
+@Composable
+private fun FontRowDivider(currentTheme: CssVariables) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(0.5.dp)
+            .background(currentTheme.border.copy(alpha = 0.5f))
+    )
+}
+
+/** Formats a byte count as a short human-readable size label. */
+private fun formatSize(bytes: Long): String = when {
+    bytes >= 1_048_576L -> "%.1f MB".format(bytes / 1_048_576f)
+    bytes >= 1024L -> "%.0f KB".format(bytes / 1024f)
+    else -> "$bytes B"
 }
