@@ -41,6 +41,9 @@
     <string name="settings_typography_mono_title">技术等宽体</string>
     <string name="settings_typography_mono_subtitle">Geist Mono / Fira 风格</string>
 
+    <!-- 字体大小 -->
+    <string name="settings_font_size_label">字体大小</string>
+
     <!-- 共享字体族标签 -->
     <string name="font_label_serif">衬线体</string>
     <string name="font_label_sans">无衬线体</string>

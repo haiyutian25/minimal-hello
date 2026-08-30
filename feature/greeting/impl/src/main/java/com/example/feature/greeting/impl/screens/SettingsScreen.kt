@@ -50,6 +50,8 @@ import com.example.core.ui.theme.ProductionPalettes
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.CardButton
+import com.example.feature.greeting.impl.components.Slider
+import kotlin.math.roundToInt
 
 enum class AppTypographyChoice(@StringRes val titleRes: Int, @StringRes val subtitleRes: Int, val font: FontFamily) {
     EDITORIAL(R.string.settings_typography_editorial_title, R.string.settings_typography_editorial_subtitle, FontFamily.Serif),
@@ -73,6 +75,8 @@ fun SettingsScreen(
     onColorModeChange: (ColorMode) -> Unit,
     selectedTypography: AppTypographyChoice,
     onTypographyChange: (AppTypographyChoice) -> Unit,
+    fontScale: Float,
+    onFontScaleChange: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Identify current palette base
@@ -346,6 +350,28 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Font size slider: scales every .sp text size app-wide.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(currentTheme.radiusLg))
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                Slider(
+                    value = fontScale,
+                    onValueChange = onFontScaleChange,
+                    label = stringResource(R.string.settings_font_size_label),
+                    valueText = "${(fontScale * 100).roundToInt()}%",
+                    valueRange = 0.8f..1.6f,
+                    currentTheme = currentTheme,
+                    modifier = Modifier.testTag("settings_font_size_slider")
+                )
             }
 
             Spacer(modifier = Modifier.height(30.dp))

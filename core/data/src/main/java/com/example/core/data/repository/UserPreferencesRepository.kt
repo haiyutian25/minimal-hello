@@ -16,6 +16,7 @@ interface UserPreferencesRepository {
     suspend fun updateTheme(themeId: String)
     suspend fun updateTypography(typographyChoice: String)
     suspend fun updateColorMode(colorMode: String)
+    suspend fun updateFontScale(fontScale: Float)
 }
 
 class UserPreferencesRepositoryImpl @Inject constructor(
@@ -25,7 +26,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     override fun observePreferences(): Flow<UserPreferences> =
         userPreferencesDao.observe().map { entity ->
             entity?.let {
-                UserPreferences(themeId = it.themeId, typographyChoice = it.typographyChoice, colorMode = it.colorMode)
+                UserPreferences(themeId = it.themeId, typographyChoice = it.typographyChoice, colorMode = it.colorMode, fontScale = it.fontScale)
             } ?: UserPreferences.DEFAULT
         }
 
@@ -37,6 +38,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                     themeId = themeId,
                     typographyChoice = UserPreferences.DEFAULT.typographyChoice,
                     colorMode = UserPreferences.DEFAULT.colorMode,
+                    fontScale = UserPreferences.DEFAULT.fontScale,
                 )
         )
     }
@@ -49,6 +51,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                     themeId = UserPreferences.DEFAULT.themeId,
                     typographyChoice = typographyChoice,
                     colorMode = UserPreferences.DEFAULT.colorMode,
+                    fontScale = UserPreferences.DEFAULT.fontScale,
                 )
         )
     }
@@ -61,6 +64,20 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                     themeId = UserPreferences.DEFAULT.themeId,
                     typographyChoice = UserPreferences.DEFAULT.typographyChoice,
                     colorMode = colorMode,
+                    fontScale = UserPreferences.DEFAULT.fontScale,
+                )
+        )
+    }
+
+    override suspend fun updateFontScale(fontScale: Float) {
+        val current = userPreferencesDao.observe().first()
+        userPreferencesDao.upsert(
+            current?.copy(fontScale = fontScale)
+                ?: UserPreferencesEntity(
+                    themeId = UserPreferences.DEFAULT.themeId,
+                    typographyChoice = UserPreferences.DEFAULT.typographyChoice,
+                    colorMode = UserPreferences.DEFAULT.colorMode,
+                    fontScale = fontScale,
                 )
         )
     }

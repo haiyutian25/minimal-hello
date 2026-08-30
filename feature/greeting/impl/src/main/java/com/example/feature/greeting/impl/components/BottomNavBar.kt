@@ -50,11 +50,13 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
@@ -112,6 +114,8 @@ private val TabIconSize = 24.dp
 /** Tab label font size and letter spacing. */
 private val TabLabelFontSize = 14.sp
 private val TabLabelLetterSpacing = 0.2.sp
+/** Tight line height applied once the label scales up, keeping it in the pill. */
+private val TabLabelLineHeight = 17.sp
 
 /** Vertical spacing between the icon and the label. */
 private val TabIconLabelSpacing = 0.dp
@@ -151,6 +155,13 @@ fun ProductionBottomNavBar(
     excludedStartZone: Dp = 0.dp,
     content: @Composable (NavigationTab) -> Unit = {}
 ) {
+    val fontScale = LocalDensity.current.fontScale
+    // When fonts are scaled up, the (sp) tab label grows taller. Tighten its
+    // line box so the icon+label pair keeps fitting the fixed pill and never
+    // nears the system gesture bar. Icon-label spacing stays at 0 — a negative
+    // padding is deliberately avoided; the tighter line box reclaims the room.
+    val labelLineHeight = if (fontScale > 1f) TabLabelLineHeight else TextUnit.Unspecified
+
     Column(modifier = modifier.fillMaxSize()) {
         // 1. Page content area (optionally swipeable)
         if (swipeable) {
@@ -238,6 +249,7 @@ fun ProductionBottomNavBar(
                             Text(
                                 text = stringResource(tab.titleRes),
                                 fontSize = TabLabelFontSize,
+                                lineHeight = labelLineHeight,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = textColor,
                                 letterSpacing = TabLabelLetterSpacing,

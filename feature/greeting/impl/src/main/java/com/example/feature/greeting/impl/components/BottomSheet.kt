@@ -10,8 +10,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.example.core.ui.theme.CssVariables
 
@@ -49,6 +51,11 @@ fun BottomSheet(
     showDragHandle: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    // The sheet renders in its own popup window, which resets LocalDensity to
+    // the window default and would drop the user's font scale. Capture the
+    // ambient density (carrying the font scale) and restore it inside.
+    val ambientDensity = LocalDensity.current
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded)
     val dragHandle: @Composable (() -> Unit)? = if (showDragHandle) {
         { BottomSheetDragHandle(currentTheme) }
@@ -64,7 +71,9 @@ fun BottomSheet(
         dragHandle = dragHandle,
         modifier = modifier
     ) {
-        content()
+        CompositionLocalProvider(LocalDensity provides ambientDensity) {
+            content()
+        }
     }
 }
 

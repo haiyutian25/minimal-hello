@@ -103,6 +103,9 @@ class GreetingViewModel @Inject constructor(
     private val _typographyChoice = MutableStateFlow(AppTypographyChoice.EDITORIAL)
     val typographyChoice: StateFlow<AppTypographyChoice> = _typographyChoice.asStateFlow()
 
+    private val _fontScale = MutableStateFlow(UserPreferences.DEFAULT.fontScale)
+    val fontScale: StateFlow<Float> = _fontScale.asStateFlow()
+
     private val _greetingIndex = MutableStateFlow(0)
     val greetingIndex: StateFlow<Int> = _greetingIndex.asStateFlow()
 
@@ -120,6 +123,7 @@ class GreetingViewModel @Inject constructor(
                 _typographyChoice.value = AppTypographyChoice.entries
                     .firstOrNull { it.name == prefs.typographyChoice }
                     ?: AppTypographyChoice.EDITORIAL
+                _fontScale.value = prefs.fontScale
             }
         }
     }
@@ -164,6 +168,12 @@ class GreetingViewModel @Inject constructor(
     fun selectTypography(choice: AppTypographyChoice) {
         _typographyChoice.value = choice
         viewModelScope.launch { userPreferencesRepository.updateTypography(choice.name) }
+    }
+
+    /** Sets the app-wide font scale and persists it. */
+    fun setFontScale(scale: Float) {
+        _fontScale.value = scale
+        viewModelScope.launch { userPreferencesRepository.updateFontScale(scale) }
     }
 
     fun selectTheme(palette: CssVariables) {

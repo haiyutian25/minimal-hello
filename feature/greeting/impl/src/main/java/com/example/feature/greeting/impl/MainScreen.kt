@@ -43,6 +43,7 @@ fun MainScreen(
     val isSidebarOpen by viewModel.isSidebarOpen.collectAsState()
     val isInspectorVisible by viewModel.isInspectorVisible.collectAsState()
     val typographyChoice by viewModel.typographyChoice.collectAsState()
+    val fontScale by viewModel.fontScale.collectAsState()
     val colorMode by viewModel.colorMode.collectAsState()
     val settingsLevel by viewModel.settingsLevel.collectAsState()
 
@@ -108,6 +109,8 @@ fun MainScreen(
                         onColorModeChange = viewModel::setColorMode,
                         selectedTypography = typographyChoice,
                         onTypographyChange = viewModel::selectTypography,
+                        fontScale = fontScale,
+                        onFontScaleChange = viewModel::setFontScale,
                         modifier = Modifier.padding(innerPadding)
                     )
                     // Bottom navigation hosts the pages itself; swipe-to-switch

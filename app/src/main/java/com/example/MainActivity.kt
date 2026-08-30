@@ -9,6 +9,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.core.ui.theme.LocalContentFontFamily
 import com.example.core.ui.theme.MinimalTheme
@@ -29,6 +31,7 @@ class MainActivity : AppCompatActivity() {
             val viewModel: GreetingViewModel = hiltViewModel()
             val currentTheme by viewModel.currentTheme.collectAsState()
             val typographyChoice by viewModel.typographyChoice.collectAsState()
+            val fontScale by viewModel.fontScale.collectAsState()
 
             // Keep the view model's system dark-mode state in sync so the
             // SYSTEM color mode follows the OS setting live.
@@ -37,8 +40,13 @@ class MainActivity : AppCompatActivity() {
                 viewModel.setSystemDarkMode(isSystemDark)
             }
 
-            // Broadcast the user's chosen content font to the whole tree.
-            CompositionLocalProvider(LocalContentFontFamily provides typographyChoice.font) {
+            // Broadcast the user's chosen content font and font scale to the
+            // whole tree. fontScale multiplies every .sp text size app-wide.
+            val baseDensity = LocalDensity.current
+            CompositionLocalProvider(
+                LocalContentFontFamily provides typographyChoice.font,
+                LocalDensity provides Density(density = baseDensity.density, fontScale = fontScale)
+            ) {
                 MinimalTheme(cssVars = currentTheme) {
                     GreetingNavHost(viewModel = viewModel)
                 }

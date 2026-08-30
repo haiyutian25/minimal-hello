@@ -41,6 +41,9 @@
     <string name="settings_typography_mono_title">Technical Mono</string>
     <string name="settings_typography_mono_subtitle">Geist Mono / Fira style</string>
 
+    <!-- Font size -->
+    <string name="settings_font_size_label">Font Size</string>
+
     <!-- Shared font family labels -->
     <string name="font_label_serif">Serif</string>
     <string name="font_label_sans">Sans</string>
