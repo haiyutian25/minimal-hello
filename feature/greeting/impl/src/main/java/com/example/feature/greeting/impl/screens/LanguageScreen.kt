@@ -24,6 +24,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,15 +53,11 @@ fun LanguageScreen(
     currentTheme: CssVariables,
     modifier: Modifier = Modifier
 ) {
-    val currentLocales = AppCompatDelegate.getApplicationLocales()
-    val selected = if (currentLocales.isEmpty) {
-        LanguageOption.FOLLOW_SYSTEM
-    } else {
-        when (currentLocales.get(0)?.language) {
-            "zh" -> LanguageOption.CHINESE
-            else -> LanguageOption.ENGLISH
-        }
-    }
+    // Track the choice locally so tapping any option moves the checkmark right
+    // away, even when the effective locale is unchanged (which skips the
+    // activity recreation that would otherwise re-derive the selection). This
+    // mirrors the color-mode picker, where any option can be picked freely.
+    var selected by remember { mutableStateOf(deriveSelectedOption()) }
 
     Column(
         modifier = modifier
@@ -94,7 +94,10 @@ fun LanguageScreen(
                 isSelected = selected == LanguageOption.FOLLOW_SYSTEM,
                 currentTheme = currentTheme,
                 testTag = "language_option_follow_system",
-                onClick = { applyLanguage(LanguageOption.FOLLOW_SYSTEM) }
+                onClick = {
+                    selected = LanguageOption.FOLLOW_SYSTEM
+                    applyLanguage(LanguageOption.FOLLOW_SYSTEM)
+                }
             )
             LanguageDivider(currentTheme)
             LanguageRow(
@@ -102,7 +105,10 @@ fun LanguageScreen(
                 isSelected = selected == LanguageOption.ENGLISH,
                 currentTheme = currentTheme,
                 testTag = "language_option_english",
-                onClick = { applyLanguage(LanguageOption.ENGLISH) }
+                onClick = {
+                    selected = LanguageOption.ENGLISH
+                    applyLanguage(LanguageOption.ENGLISH)
+                }
             )
             LanguageDivider(currentTheme)
             LanguageRow(
@@ -110,7 +116,10 @@ fun LanguageScreen(
                 isSelected = selected == LanguageOption.CHINESE,
                 currentTheme = currentTheme,
                 testTag = "language_option_chinese",
-                onClick = { applyLanguage(LanguageOption.CHINESE) }
+                onClick = {
+                    selected = LanguageOption.CHINESE
+                    applyLanguage(LanguageOption.CHINESE)
+                }
             )
         }
 
@@ -125,6 +134,19 @@ private fun applyLanguage(option: LanguageOption) {
         LanguageOption.CHINESE -> LocaleListCompat.forLanguageTags("zh-CN")
     }
     AppCompatDelegate.setApplicationLocales(locales)
+}
+
+/** Derives the currently applied option from the persisted app locales. */
+private fun deriveSelectedOption(): LanguageOption {
+    val currentLocales = AppCompatDelegate.getApplicationLocales()
+    return if (currentLocales.isEmpty) {
+        LanguageOption.FOLLOW_SYSTEM
+    } else {
+        when (currentLocales.get(0)?.language) {
+            "zh" -> LanguageOption.CHINESE
+            else -> LanguageOption.ENGLISH
+        }
+    }
 }
 
 @Composable
