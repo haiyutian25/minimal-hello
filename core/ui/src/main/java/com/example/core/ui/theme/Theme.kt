@@ -1,6 +1,7 @@
 package com.example.core.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -48,12 +49,23 @@ fun MinimalTheme(
         )
     }
 
+    val contentFont = LocalContentFontFamily.current
+
     CompositionLocalProvider(LocalCssVariables provides cssVars) {
         MaterialTheme(
             colorScheme = m3ColorScheme,
-            typography = Typography,
-            content = content
-        )
+            typography = Typography
+        ) {
+            // The default text style follows the user's chosen content font, so
+            // any Text that does not pin its own fontFamily inherits it. Text
+            // that explicitly sets fontFamily (code, font previews, decorative
+            // letters) keeps its own and is unaffected.
+            CompositionLocalProvider(
+                LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = contentFont)
+            ) {
+                content()
+            }
+        }
     }
 }
 

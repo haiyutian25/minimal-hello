@@ -1,10 +1,20 @@
 package com.example.core.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+
+/**
+ * App-wide content font family, driven by the user's typography choice
+ * (Editorial / Sans / Mono) and provided near the root. Content text —
+ * headings, labels, body, buttons — should read this. Code & technical text
+ * (CSS snippets, token names, hex values, numeric readouts) intentionally keep
+ * [FontFamily.Monospace] and must NOT read this.
+ */
+val LocalContentFontFamily = compositionLocalOf<FontFamily> { FontFamily.SansSerif }
 
 val Typography = Typography(
     displayLarge = TextStyle(
