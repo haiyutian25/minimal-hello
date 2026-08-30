@@ -39,7 +39,7 @@ data class CustomGreetingState(
  * (the global top nav bar stays visible on every level):
  * NONE (normal tabs) -> MENU (settings menu list) -> PAGE (appearance settings).
  */
-enum class SettingsLevel { NONE, MENU, PAGE, LANGUAGE, FONT }
+enum class SettingsLevel { NONE, MENU, PAGE, LANGUAGE, FONT, FONT_SIZE }
 
 /**
  * Single ViewModel backing the greeting feature (MVVM).
@@ -216,12 +216,17 @@ class GreetingViewModel @Inject constructor(
         _settingsLevel.value = SettingsLevel.FONT
     }
 
+    fun openFontSizeSettings() {
+        _settingsLevel.value = SettingsLevel.FONT_SIZE
+    }
+
     /** Steps one settings level back (PAGE -> MENU -> NONE). */
     fun backSettings() {
         when (_settingsLevel.value) {
             SettingsLevel.PAGE -> _settingsLevel.value = SettingsLevel.MENU
             SettingsLevel.LANGUAGE -> _settingsLevel.value = SettingsLevel.MENU
             SettingsLevel.FONT -> _settingsLevel.value = SettingsLevel.MENU
+            SettingsLevel.FONT_SIZE -> _settingsLevel.value = SettingsLevel.FONT
             SettingsLevel.MENU -> _settingsLevel.value = SettingsLevel.NONE
             SettingsLevel.NONE -> Unit
         }

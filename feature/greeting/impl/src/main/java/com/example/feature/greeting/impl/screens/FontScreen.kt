@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.TextFields
@@ -39,7 +40,6 @@ import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssVariables
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
-import com.example.feature.greeting.impl.components.Slider
 import kotlin.math.roundToInt
 
 /**
@@ -54,7 +54,7 @@ enum class AppTypographyChoice(@StringRes val titleRes: Int, @StringRes val subt
 
 /**
  * Dedicated font settings page: the typography engine (font family) picker and
- * the app-wide font-size slider, moved out of the appearance page.
+ * an entry that opens the font-size adjustment page.
  */
 @Composable
 fun FontScreen(
@@ -62,7 +62,7 @@ fun FontScreen(
     selectedTypography: AppTypographyChoice,
     onTypographyChange: (AppTypographyChoice) -> Unit,
     fontScale: Float,
-    onFontScaleChange: (Float) -> Unit,
+    onOpenFontSize: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -163,7 +163,7 @@ fun FontScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // ==========================================
-        // SECTION 2: Font size (scales every .sp app-wide)
+        // SECTION 2: Font size -> dedicated adjust page
         // ==========================================
         FontSectionHeader(
             title = stringResource(R.string.settings_section_font_size),
@@ -173,23 +173,52 @@ fun FontScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(currentTheme.radiusLg))
-                .background(currentTheme.card)
-                .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+        Button(
+            onClick = { onOpenFontSize() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(currentTheme.radiusMd),
+            testTag = "font_size_entry"
         ) {
-            Slider(
-                value = fontScale,
-                onValueChange = onFontScaleChange,
-                label = stringResource(R.string.settings_font_size_label),
-                valueText = "${(fontScale * 100).roundToInt()}%",
-                valueRange = 0.8f..1.6f,
-                currentTheme = currentTheme,
-                modifier = Modifier.testTag("settings_font_size_slider")
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusMd))
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_font_size_label),
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = currentTheme.foreground
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.settings_font_size_entry_subtitle),
+                        fontSize = 11.sp,
+                        color = currentTheme.mutedForeground
+                    )
+                }
+
+                Text(
+                    text = "${(fontScale * 100).roundToInt()}%",
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = currentTheme.primary
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = currentTheme.mutedForeground,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(30.dp))

@@ -24,6 +24,7 @@ import com.example.feature.greeting.impl.components.SidebarDrawer
 import com.example.feature.greeting.impl.components.SidebarEdgeZone
 import com.example.feature.greeting.impl.screens.CanvasScreen
 import com.example.feature.greeting.impl.screens.FontScreen
+import com.example.feature.greeting.impl.screens.FontSizeScreen
 import com.example.feature.greeting.impl.screens.LanguageScreen
 import com.example.feature.greeting.impl.screens.SettingsMenuScreen
 import com.example.feature.greeting.impl.screens.SettingsScreen
@@ -83,6 +84,7 @@ fun MainScreen(
                             SettingsLevel.MENU -> stringResource(R.string.settings_page_title)
                             SettingsLevel.PAGE -> stringResource(R.string.settings_menu_appearance_title)
                             SettingsLevel.FONT -> stringResource(R.string.settings_menu_font_title)
+                            SettingsLevel.FONT_SIZE -> stringResource(R.string.settings_font_size_label)
                             SettingsLevel.LANGUAGE -> stringResource(R.string.language_title)
                             SettingsLevel.NONE -> null
                         },
@@ -117,7 +119,13 @@ fun MainScreen(
                         selectedTypography = typographyChoice,
                         onTypographyChange = viewModel::selectTypography,
                         fontScale = fontScale,
-                        onFontScaleChange = viewModel::setFontScale,
+                        onOpenFontSize = viewModel::openFontSizeSettings,
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                    SettingsLevel.FONT_SIZE -> FontSizeScreen(
+                        currentTheme = currentTheme,
+                        fontScale = fontScale,
+                        onSave = viewModel::setFontScale,
                         modifier = Modifier.padding(innerPadding)
                     )
                     // Bottom navigation hosts the pages itself; swipe-to-switch
