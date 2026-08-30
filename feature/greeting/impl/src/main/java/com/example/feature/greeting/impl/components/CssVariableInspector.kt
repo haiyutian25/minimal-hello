@@ -59,6 +59,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssTheme
@@ -422,7 +423,9 @@ private fun TabPill(
                 text = title,
                 fontSize = InspectorTabPillFontSize,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isSelected) CssTheme.vars.cardForeground else CssTheme.vars.mutedForeground
+                color = if (isSelected) CssTheme.vars.cardForeground else CssTheme.vars.mutedForeground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

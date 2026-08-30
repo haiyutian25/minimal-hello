@@ -81,8 +81,11 @@ import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
+import com.example.core.ui.theme.isBraun
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
+import com.example.feature.greeting.impl.components.SegmentedControl
+import com.example.feature.greeting.impl.components.SegmentedOption
 import com.example.core.ui.theme.toHex
 import com.example.core.ui.util.copyToClipboard
 import com.example.feature.greeting.impl.GreetingViewModel
@@ -239,6 +242,15 @@ fun CanvasScreen(
             presets.forEach { (name, lightVariant, darkVariant) ->
                 val isSelected = currentPresetBase == name
                 val targetVariant = if (currentTheme.isDark) darkVariant else lightVariant
+                // Selected pill gets a clearly elevated surface: pure white in light
+                // mode, a lighter muted surface in dark mode (card sits too close to
+                // the unselected subtleSurface to read as selected there). Braun
+                // (Dieter Rams) keeps its original restrained card surface instead.
+                val selectedPillBackground = when {
+                    currentTheme.isBraun -> currentTheme.card
+                    currentTheme.isDark -> currentTheme.muted
+                    else -> Color.White
+                }
 
                 Button(
                     onClick = { viewModel.selectTheme(targetVariant) },
@@ -247,7 +259,7 @@ fun CanvasScreen(
                 ) {
                     Row(
                         modifier = Modifier
-                            .background(if (isSelected) currentTheme.card else currentTheme.subtleSurface)
+                            .background(if (isSelected) selectedPillBackground else currentTheme.subtleSurface)
                             .border(
                                 width = if (isSelected) 1.5.dp else 1.dp,
                                 color = if (isSelected) currentTheme.primary else currentTheme.border.copy(alpha = 0.5f),
@@ -634,54 +646,28 @@ fun CanvasScreen(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Typography Engine Selector (Editorial Serif, Sans Modern, Mono Code)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(currentTheme.radiusMd))
-                .background(currentTheme.card)
-                .border(1.dp, currentTheme.border.copy(alpha = 0.5f), RoundedCornerShape(currentTheme.radiusMd))
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            TypographyStyle.entries.forEach { style ->
-                val isSelected = selectedTypography == style
-                Button(
-                    onClick = {
-                        viewModel.selectTypography(
-                            when (style) {
-                                TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
-                                TypographyStyle.SANS -> AppTypographyChoice.SANS
-                                TypographyStyle.MONO -> AppTypographyChoice.MONO
-                            }
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(currentTheme.radiusSm)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(if (isSelected) currentTheme.subtleSurface else Color.Transparent)
-                            .border(
-                                width = if (isSelected) 1.dp else 0.dp,
-                                color = if (isSelected) currentTheme.border else Color.Transparent,
-                                shape = RoundedCornerShape(currentTheme.radiusSm)
-                            )
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(style.labelRes),
-                            fontFamily = style.font,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) currentTheme.foreground else currentTheme.mutedForeground
-                        )
+        // Typography engine selector (shared SegmentedControl from the library).
+        SegmentedControl(
+            options = TypographyStyle.entries.map { style ->
+                SegmentedOption(
+                    id = style.name,
+                    label = stringResource(style.labelRes),
+                    font = style.font
+                )
+            },
+            selectedId = selectedTypography.name,
+            onSelect = { id ->
+                val style = TypographyStyle.valueOf(id)
+                viewModel.selectTypography(
+                    when (style) {
+                        TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
+                        TypographyStyle.SANS -> AppTypographyChoice.SANS
+                        TypographyStyle.MONO -> AppTypographyChoice.MONO
                     }
-                }
-            }
-        }
+                )
+            },
+            currentTheme = currentTheme
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 

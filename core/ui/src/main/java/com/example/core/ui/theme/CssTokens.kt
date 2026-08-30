@@ -395,6 +395,14 @@ object CssTheme {
 }
 
 /**
+ * Braun (Dieter Rams) keeps its restrained, honest selected surfaces and opts
+ * out of the elevated white/muted selected-highlight treatment applied to the
+ * other palettes.
+ */
+val CssVariables.isBraun: Boolean
+    get() = themeId.startsWith("dieter-rams")
+
+/**
  * Central resolution from a persisted themeId back to a concrete
  * [CssVariables] palette.
  */

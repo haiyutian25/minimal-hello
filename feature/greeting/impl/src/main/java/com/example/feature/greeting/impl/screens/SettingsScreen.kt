@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.example.core.data.model.ColorMode
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
+import com.example.core.ui.theme.isBraun
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.CardButton
@@ -299,6 +300,18 @@ private fun ColorModeCard(
         currentTheme = currentTheme,
         modifier = modifier,
         shape = RoundedCornerShape(currentTheme.radiusMd),
+        // Selected card gets an elevated surface (white in light / muted in dark)
+        // instead of staying the same gray as the unselected cards. Braun (Dieter
+        // Rams) keeps its original restrained card surface instead.
+        containerColor = if (isSelected) {
+            when {
+                currentTheme.isBraun -> currentTheme.card
+                currentTheme.isDark -> currentTheme.muted
+                else -> Color.White
+            }
+        } else {
+            currentTheme.card
+        },
         contentPadding = PaddingValues(vertical = 14.dp, horizontal = 6.dp),
         contentAlignment = Alignment.Center,
         testTag = testTag
