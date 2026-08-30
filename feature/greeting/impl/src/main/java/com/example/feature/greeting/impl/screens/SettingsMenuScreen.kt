@@ -58,19 +58,6 @@ fun SettingsMenuScreen(
             .widthIn(max = 560.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = stringResource(R.string.settings_menu_label),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.5.sp,
-            color = currentTheme.mutedForeground,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp)
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
         // Entry: Appearance & Themes -> existing appearance settings page
         Button(
             onClick = { onOpenAppearance() },

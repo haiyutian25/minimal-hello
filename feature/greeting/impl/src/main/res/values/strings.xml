@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Settings menu -->
-    <string name="settings_menu_label">MENU</string>
     <string name="settings_menu_appearance_title">Appearance &amp; Themes</string>
     <string name="settings_menu_appearance_subtitle">Color modes &amp; palettes</string>
     <string name="settings_menu_font_title">Font</string>

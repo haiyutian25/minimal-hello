@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 设置菜单 -->
-    <string name="settings_menu_label">菜单</string>
     <string name="settings_menu_appearance_title">外观与主题</string>
     <string name="settings_menu_appearance_subtitle">配色模式与调色板</string>
     <string name="settings_menu_font_title">字体</string>
