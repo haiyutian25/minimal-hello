@@ -3,12 +3,15 @@
     <!-- Settings menu -->
     <string name="settings_menu_label">MENU</string>
     <string name="settings_menu_appearance_title">Appearance &amp; Themes</string>
-    <string name="settings_menu_appearance_subtitle">Color modes, palettes, typography &amp; CSS tokens</string>
+    <string name="settings_menu_appearance_subtitle">Color modes &amp; palettes</string>
+    <string name="settings_menu_font_title">Font</string>
+    <string name="settings_menu_font_subtitle">Typeface engine &amp; font size</string>
 
     <!-- Settings section headers -->
     <string name="settings_section_color_mode">COLOR SCHEME &amp; MODE</string>
     <string name="settings_section_palettes">CURATED DESIGN PALETTES</string>
     <string name="settings_section_typography">TYPOGRAPHY ENGINE</string>
+    <string name="settings_section_font_size">FONT SIZE</string>
 
     <!-- Color mode cards -->
     <string name="settings_mode_light_title">Light Canvas</string>

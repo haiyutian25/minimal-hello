@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.outlined.Contrast
-import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -40,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,14 +47,6 @@ import com.example.core.ui.theme.ProductionPalettes
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.CardButton
-import com.example.feature.greeting.impl.components.Slider
-import kotlin.math.roundToInt
-
-enum class AppTypographyChoice(@StringRes val titleRes: Int, @StringRes val subtitleRes: Int, val font: FontFamily) {
-    EDITORIAL(R.string.settings_typography_editorial_title, R.string.settings_typography_editorial_subtitle, FontFamily.Serif),
-    SANS(R.string.settings_typography_sans_title, R.string.settings_typography_sans_subtitle, FontFamily.SansSerif),
-    MONO(R.string.settings_typography_mono_title, R.string.settings_typography_mono_subtitle, FontFamily.Monospace)
-}
 
 private data class PaletteEntry(
     val baseKey: String,
@@ -73,10 +62,6 @@ fun SettingsScreen(
     onThemeChange: (CssVariables) -> Unit,
     colorMode: ColorMode,
     onColorModeChange: (ColorMode) -> Unit,
-    selectedTypography: AppTypographyChoice,
-    onTypographyChange: (AppTypographyChoice) -> Unit,
-    fontScale: Float,
-    onFontScaleChange: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Identify current palette base
@@ -263,115 +248,6 @@ fun SettingsScreen(
                         )
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ==========================================
-            // SECTION 3: Typography Style
-            // ==========================================
-            SettingsSectionHeader(
-                title = stringResource(R.string.settings_section_typography),
-                icon = Icons.Outlined.FormatSize,
-                currentTheme = currentTheme
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(currentTheme.radiusLg))
-                    .background(currentTheme.card)
-                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
-            ) {
-                AppTypographyChoice.values().forEachIndexed { index, style ->
-                    val isSelected = selectedTypography == style
-
-                    Button(
-                        onClick = { onTypographyChange(style) },
-                        modifier = Modifier.fillMaxWidth(),
-                        testTag = "settings_typography_${style.name}"
-                    ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = "Aa",
-                                fontFamily = style.font,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isSelected) currentTheme.primary else currentTheme.mutedForeground,
-                                modifier = Modifier.width(26.dp)
-                            )
-
-                            Column {
-                                Text(
-                                    text = stringResource(style.titleRes),
-                                    fontFamily = style.font,
-                                    fontSize = 13.5.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = currentTheme.foreground
-                                )
-                                Text(
-                                    text = stringResource(style.subtitleRes),
-                                    fontSize = 10.5.sp,
-                                    color = currentTheme.mutedForeground
-                                )
-                            }
-                        }
-
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = currentTheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                    }
-
-                    if (index < AppTypographyChoice.values().size - 1) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .height(0.5.dp)
-                                .background(currentTheme.border.copy(alpha = 0.5f))
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Font size slider: scales every .sp text size app-wide.
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(currentTheme.radiusLg))
-                    .background(currentTheme.card)
-                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-                Slider(
-                    value = fontScale,
-                    onValueChange = onFontScaleChange,
-                    label = stringResource(R.string.settings_font_size_label),
-                    valueText = "${(fontScale * 100).roundToInt()}%",
-                    valueRange = 0.8f..1.6f,
-                    currentTheme = currentTheme,
-                    modifier = Modifier.testTag("settings_font_size_slider")
-                )
             }
 
             Spacer(modifier = Modifier.height(30.dp))

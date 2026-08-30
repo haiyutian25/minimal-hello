@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.FormatSize
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.Icon
@@ -35,13 +36,15 @@ import com.example.feature.greeting.impl.components.Button
 
 /**
  * Settings menu list, rendered inside the main Scaffold content area so the
- * global top nav bar stays visible. Current entry:
- * "Appearance & Themes" -> the appearance settings page.
+ * global top nav bar stays visible. Entries:
+ * "Appearance & Themes" -> appearance page, "Font" -> font page,
+ * "Language" -> language page.
  */
 @Composable
 fun SettingsMenuScreen(
     currentTheme: CssVariables,
     onOpenAppearance: () -> Unit,
+    onOpenFont: () -> Unit,
     onOpenLanguage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -102,6 +105,56 @@ fun SettingsMenuScreen(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = stringResource(R.string.settings_menu_appearance_subtitle),
+                        fontSize = 11.sp,
+                        color = currentTheme.mutedForeground
+                    )
+                }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = currentTheme.mutedForeground,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Entry: Font -> font settings page (typeface engine + font size)
+        Button(
+            onClick = { onOpenFont() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(currentTheme.radiusMd),
+            testTag = "settings_menu_font_entry"
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(currentTheme.card)
+                    .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusMd))
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.FormatSize,
+                    contentDescription = null,
+                    tint = currentTheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_menu_font_title),
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = currentTheme.foreground
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.settings_menu_font_subtitle),
                         fontSize = 11.sp,
                         color = currentTheme.mutedForeground
                     )

@@ -23,6 +23,7 @@ import com.example.feature.greeting.impl.components.ProductionTopNavBar
 import com.example.feature.greeting.impl.components.SidebarDrawer
 import com.example.feature.greeting.impl.components.SidebarEdgeZone
 import com.example.feature.greeting.impl.screens.CanvasScreen
+import com.example.feature.greeting.impl.screens.FontScreen
 import com.example.feature.greeting.impl.screens.LanguageScreen
 import com.example.feature.greeting.impl.screens.SettingsMenuScreen
 import com.example.feature.greeting.impl.screens.SettingsScreen
@@ -81,6 +82,7 @@ fun MainScreen(
                         pageTitle = when (settingsLevel) {
                             SettingsLevel.MENU -> stringResource(R.string.settings_page_title)
                             SettingsLevel.PAGE -> stringResource(R.string.settings_menu_appearance_title)
+                            SettingsLevel.FONT -> stringResource(R.string.settings_menu_font_title)
                             SettingsLevel.LANGUAGE -> stringResource(R.string.language_title)
                             SettingsLevel.NONE -> null
                         },
@@ -95,6 +97,7 @@ fun MainScreen(
                     SettingsLevel.MENU -> SettingsMenuScreen(
                         currentTheme = currentTheme,
                         onOpenAppearance = viewModel::openAppearanceSettings,
+                        onOpenFont = viewModel::openFontSettings,
                         onOpenLanguage = viewModel::openLanguageSettings,
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -107,6 +110,10 @@ fun MainScreen(
                         onThemeChange = viewModel::selectTheme,
                         colorMode = colorMode,
                         onColorModeChange = viewModel::setColorMode,
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                    SettingsLevel.FONT -> FontScreen(
+                        currentTheme = currentTheme,
                         selectedTypography = typographyChoice,
                         onTypographyChange = viewModel::selectTypography,
                         fontScale = fontScale,
