@@ -17,3 +17,5 @@ local.properties
 .env
 debug.keystore
 .git-commit-msg.txt
+.git_commit_msg.txt
+.tmp_frp/
