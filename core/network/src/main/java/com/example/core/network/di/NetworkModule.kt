@@ -6,16 +6,23 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     private const val BASE_URL = "https://api.example.com/"
+
+    /** Tolerates unknown keys so DTOs stay forward-compatible with API changes. */
+    private val json = Json {
+        ignoreUnknownKeys = true
+    }
 
     @Provides
     @Singleton
@@ -30,7 +37,7 @@ object NetworkModule {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(MoshiConverterFactory.create())
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
     @Provides

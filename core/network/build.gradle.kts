@@ -1,5 +1,6 @@
 plugins {
   alias(libs.plugins.android.library)
+  alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.google.devtools.ksp)
 }
 
@@ -19,10 +20,10 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 
 dependencies {
   implementation(libs.retrofit)
-  implementation(libs.converter.moshi)
+  implementation(libs.converter.kotlinx.serialization)
   implementation(libs.okhttp)
   implementation(libs.logging.interceptor)
-  implementation(libs.moshi.kotlin)
+  implementation(libs.kotlinx.serialization.json)
 
   implementation(libs.hilt.android)
   ksp(libs.hilt.compiler)
