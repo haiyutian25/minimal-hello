@@ -1,9 +1,15 @@
 package com.example.core.network
 
+import com.example.core.network.model.HeroQuoteDto
+import retrofit2.http.GET
+
 /**
- * Retrofit service contract for remote greeting content.
- *
- * Intentionally empty for now: the module wires the full Retrofit/OkHttp
- * stack via Hilt so future endpoints only need to be declared here.
+ * Retrofit service contract for remote greeting content. The full
+ * Retrofit/OkHttp stack is wired via Hilt in [com.example.core.network.di.NetworkModule].
  */
-interface GreetingApi
+interface GreetingApi {
+
+    /** Fetches the curated hero quotes. */
+    @GET("greetings")
+    suspend fun getHeroQuotes(): List<HeroQuoteDto>
+}

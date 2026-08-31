@@ -2,6 +2,8 @@ package com.example.core.data.repository
 
 import androidx.annotation.StringRes
 import com.example.core.data.R
+import com.example.core.data.datasource.GreetingRemoteDataSource
+import com.example.core.data.model.RemoteHeroQuote
 import javax.inject.Inject
 
 /**
@@ -21,9 +23,18 @@ data class HeroQuote(@StringRes val part1Res: Int, @StringRes val part2Res: Int)
 interface GreetingRepository {
     val heroQuotes: List<HeroQuote>
     val heroCaptions: List<Int>
+
+    /**
+     * Remote-readiness: fetches hero quotes from the network. Degrades to an
+     * empty list on failure so callers keep the local [heroQuotes] as the
+     * baseline (local curation is always available as the fallback).
+     */
+    suspend fun fetchRemoteHeroQuotes(): List<RemoteHeroQuote>
 }
 
-class GreetingRepositoryImpl @Inject constructor() : GreetingRepository {
+class GreetingRepositoryImpl @Inject constructor(
+    private val remoteDataSource: GreetingRemoteDataSource,
+) : GreetingRepository {
 
     override val heroQuotes: List<HeroQuote> = listOf(
         HeroQuote(R.string.hero_quote_1_part1, R.string.hero_quote_1_part2),
@@ -41,4 +52,7 @@ class GreetingRepositoryImpl @Inject constructor() : GreetingRepository {
         R.string.hero_caption_4,
         R.string.hero_caption_5,
     )
+
+    override suspend fun fetchRemoteHeroQuotes(): List<RemoteHeroQuote> =
+        runCatching { remoteDataSource.fetchHeroQuotes() }.getOrDefault(emptyList())
 }

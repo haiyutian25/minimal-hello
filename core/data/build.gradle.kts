@@ -19,6 +19,7 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 
 dependencies {
   api(project(":core:database"))
+  implementation(project(":core:network"))
 
   implementation(libs.kotlinx.coroutines.core)
 
