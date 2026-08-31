@@ -58,6 +58,11 @@
     <string name="settings_font_downloading">Downloading…</string>
     <string name="settings_font_delete_cd">Delete font</string>
     <string name="settings_font_badge_uploaded">Uploaded</string>
+    <string name="font_imported_toast">Font imported</string>
+    <string name="font_import_failed_toast">Font import failed</string>
+    <string name="font_deleted_toast">Font deleted</string>
+    <string name="font_download_complete_toast">Font downloaded</string>
+    <string name="font_download_failed_toast">Font download failed</string>
 
     <!-- Font size -->
     <string name="settings_font_size_label">Font Size</string>

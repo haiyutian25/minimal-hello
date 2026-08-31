@@ -58,6 +58,11 @@
     <string name="settings_font_downloading">下载中…</string>
     <string name="settings_font_delete_cd">删除字体</string>
     <string name="settings_font_badge_uploaded">已上传</string>
+    <string name="font_imported_toast">字体已导入</string>
+    <string name="font_import_failed_toast">字体导入失败</string>
+    <string name="font_deleted_toast">字体已删除</string>
+    <string name="font_download_complete_toast">字体下载完成</string>
+    <string name="font_download_failed_toast">字体下载失败</string>
 
     <!-- 字体大小 -->
     <string name="settings_font_size_label">字体大小</string>

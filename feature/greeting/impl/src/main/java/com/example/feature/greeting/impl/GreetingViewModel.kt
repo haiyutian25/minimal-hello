@@ -23,6 +23,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -66,6 +69,14 @@ class GreetingViewModel @Inject constructor(
 
     val heroQuotes: List<HeroQuote> = greetingRepository.heroQuotes
     val heroCaptions: List<Int> = greetingRepository.heroCaptions
+
+    private val _uiEvents = Channel<UiEvent>(Channel.BUFFERED)
+    /** One-time UI events (e.g. toasts); consumed exactly once by the UI. */
+    val uiEvents: Flow<UiEvent> = _uiEvents.receiveAsFlow()
+
+    private fun emitUiEvent(event: UiEvent) {
+        viewModelScope.launch { _uiEvents.send(event) }
+    }
 
     private val _currentTab = MutableStateFlow(NavigationTab.CANVAS)
     val currentTab: StateFlow<NavigationTab> = _currentTab.asStateFlow()
@@ -214,7 +225,15 @@ class GreetingViewModel @Inject constructor(
 
     /** Starts downloading a preset font; progress is exposed via [downloadProgress]. */
     fun downloadFont(preset: PresetFont) {
-        viewModelScope.launch { customFontRepository.downloadPreset(preset) }
+        viewModelScope.launch {
+            val success = customFontRepository.downloadPreset(preset)
+            emitUiEvent(
+                UiEvent.ShowToast(
+                    if (success) R.string.font_download_complete_toast
+                    else R.string.font_download_failed_toast
+                )
+            )
+        }
     }
 
     /** Deletes an installed font, clearing it if it was the active selection. */
@@ -224,13 +243,19 @@ class GreetingViewModel @Inject constructor(
             viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont("") }
         }
         customFontRepository.deleteFont(fontId)
+        emitUiEvent(UiEvent.ShowToast(R.string.font_deleted_toast))
     }
 
     /** Imports a user-picked font file and makes it the active content font. */
     fun importFont(uri: Uri, fallbackName: String) {
         viewModelScope.launch {
             val fontId = customFontRepository.importFont(uri, fallbackName)
-            if (fontId != null) selectCustomFont(fontId)
+            if (fontId != null) {
+                selectCustomFont(fontId)
+                emitUiEvent(UiEvent.ShowToast(R.string.font_imported_toast))
+            } else {
+                emitUiEvent(UiEvent.ShowToast(R.string.font_import_failed_toast))
+            }
         }
     }
 
