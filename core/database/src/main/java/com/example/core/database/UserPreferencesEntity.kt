@@ -4,7 +4,12 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Single-row table persisting the user's UI preferences across restarts.
+ * Legacy single-row preferences entity.
+ *
+ * Active preferences now live in Preferences DataStore (see `core:data`). This
+ * entity is retained only so Room declares at least one entity while the
+ * database is reserved for future structured local data; drop it (with a
+ * migration) once real structured data is introduced.
  */
 @Entity(tableName = "user_preferences")
 data class UserPreferencesEntity(

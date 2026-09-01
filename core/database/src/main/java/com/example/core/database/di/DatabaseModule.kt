@@ -5,7 +5,6 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.core.database.AppDatabase
-import com.example.core.database.UserPreferencesDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,14 +37,15 @@ object DatabaseModule {
         }
     }
 
+    /**
+     * Room is reserved for future structured local data. Active preferences
+     * live in DataStore, so no DAO is provided for the legacy preferences
+     * entity; it exists only to keep the database valid.
+     */
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
-
-    @Provides
-    fun provideUserPreferencesDao(database: AppDatabase): UserPreferencesDao =
-        database.userPreferencesDao()
 }

@@ -22,6 +22,7 @@ dependencies {
   implementation(project(":core:network"))
 
   implementation(libs.kotlinx.coroutines.core)
+  implementation(libs.androidx.datastore.preferences)
 
   implementation(libs.hilt.android)
   ksp(libs.hilt.compiler)
