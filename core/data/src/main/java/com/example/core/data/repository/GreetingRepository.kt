@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import com.example.core.data.R
 import com.example.core.data.datasource.GreetingRemoteDataSource
 import com.example.core.data.model.RemoteHeroQuote
-import javax.inject.Inject
 
 /**
  * One curated typographic statement shown on the hero card.
@@ -32,7 +31,7 @@ interface GreetingRepository {
     suspend fun fetchRemoteHeroQuotes(): List<RemoteHeroQuote>
 }
 
-class GreetingRepositoryImpl @Inject constructor(
+class GreetingRepositoryImpl(
     private val remoteDataSource: GreetingRemoteDataSource,
 ) : GreetingRepository {
 

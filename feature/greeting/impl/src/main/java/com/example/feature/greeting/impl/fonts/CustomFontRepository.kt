@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import com.example.core.data.manager.dispatcher.DispatcherManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.net.HttpURLConnection
@@ -12,7 +13,6 @@ import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +26,7 @@ import kotlinx.coroutines.withContext
 @Singleton
 class CustomFontRepository @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val dispatcherManager: DispatcherManager,
 ) {
     private val fontsDir: File
         get() = File(context.filesDir, DIR_NAME).apply { if (!exists()) mkdirs() }
@@ -41,7 +42,7 @@ class CustomFontRepository @Inject constructor(
     val installedVersion: StateFlow<Int> = _installedVersion.asStateFlow()
 
     /** Scans the fonts directory and returns all installed fonts. */
-    fun installedFonts(): List<InstalledFont> =
+    suspend fun installedFonts(): List<InstalledFont> = withContext(dispatcherManager.io) {
         fontsDir.listFiles()
             .orEmpty()
             .filter { it.isFile && it.extension.lowercase() in FONT_EXTENSIONS }
@@ -57,6 +58,7 @@ class CustomFontRepository @Inject constructor(
                 )
             }
             .sortedBy { it.displayName.lowercase() }
+    }
 
     fun isInstalled(fontId: String): Boolean = File(fontsDir, fontId).exists()
 
@@ -69,7 +71,7 @@ class CustomFontRepository @Inject constructor(
     }
 
     /** Downloads a preset font to disk, streaming progress to [downloadProgress]. */
-    suspend fun downloadPreset(preset: PresetFont): Boolean = withContext(Dispatchers.IO) {
+    suspend fun downloadPreset(preset: PresetFont): Boolean = withContext(dispatcherManager.io) {
         if (isInstalled(preset.fileName)) return@withContext true
         val target = File(fontsDir, preset.fileName)
         val partial = File(fontsDir, preset.fileName + PARTIAL_SUFFIX)
@@ -115,7 +117,7 @@ class CustomFontRepository @Inject constructor(
     }
 
     /** Copies a user-picked font file into the fonts directory. Returns its ID. */
-    suspend fun importFont(uri: Uri, fallbackName: String): String? = withContext(Dispatchers.IO) {
+    suspend fun importFont(uri: Uri, fallbackName: String): String? = withContext(dispatcherManager.io) {
         try {
             val originalName = queryDisplayName(uri) ?: fallbackName
             val extension = originalName.substringAfterLast('.', "").lowercase()

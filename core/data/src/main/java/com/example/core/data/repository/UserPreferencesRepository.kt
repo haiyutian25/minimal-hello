@@ -1,15 +1,19 @@
 package com.example.core.data.repository
 
 import com.example.core.data.datastore.UserPreferencesDataStore
+import com.example.core.data.manager.dispatcher.DispatcherManager
 import com.example.core.data.model.UserPreferences
-import javax.inject.Inject
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 
 /**
  * Data-layer entry point for reading and updating persisted UI preferences.
  */
 interface UserPreferencesRepository {
-    fun observePreferences(): Flow<UserPreferences>
+    /** Hot stream of the persisted preferences, started eagerly at injection time. */
+    val preferencesStateFlow: StateFlow<UserPreferences>
     suspend fun updateTheme(themeId: String)
     suspend fun updateTypography(typographyChoice: String)
     suspend fun updateColorMode(colorMode: String)
@@ -18,15 +22,24 @@ interface UserPreferencesRepository {
 }
 
 /**
- * Preferences DataStore-backed implementation. Reads expose a [Flow]; each
+ * Preferences DataStore-backed implementation. Reads expose a [StateFlow]; each
  * update atomically edits the stored preferences.
  */
-class UserPreferencesRepositoryImpl @Inject constructor(
+class UserPreferencesRepositoryImpl(
     private val userPreferencesDataStore: UserPreferencesDataStore,
+    dispatcherManager: DispatcherManager,
 ) : UserPreferencesRepository {
 
-    override fun observePreferences(): Flow<UserPreferences> =
-        userPreferencesDataStore.preferences
+    private val unconfinedScope = CoroutineScope(dispatcherManager.unconfined)
+
+    override val preferencesStateFlow: StateFlow<UserPreferences> =
+        userPreferencesDataStore
+            .preferences
+            .stateIn(
+                scope = unconfinedScope,
+                started = SharingStarted.Eagerly,
+                initialValue = UserPreferences.DEFAULT,
+            )
 
     override suspend fun updateTheme(themeId: String) =
         userPreferencesDataStore.update { it.copy(themeId = themeId) }

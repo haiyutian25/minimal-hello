@@ -1,28 +1,42 @@
 package com.example.core.data.di
 
+import com.example.core.data.datastore.UserPreferencesDataStore
+import com.example.core.data.datasource.GreetingRemoteDataSource
+import com.example.core.data.manager.dispatcher.DispatcherManager
+import com.example.core.data.manager.dispatcher.DispatcherManagerImpl
 import com.example.core.data.repository.GreetingRepository
 import com.example.core.data.repository.GreetingRepositoryImpl
 import com.example.core.data.repository.UserPreferencesRepository
 import com.example.core.data.repository.UserPreferencesRepositoryImpl
-import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class DataModule {
+object DataModule {
 
-    @Binds
+    @Provides
     @Singleton
-    abstract fun bindUserPreferencesRepository(
-        impl: UserPreferencesRepositoryImpl,
-    ): UserPreferencesRepository
+    fun provideDispatcherManager(): DispatcherManager = DispatcherManagerImpl()
 
-    @Binds
+    @Provides
     @Singleton
-    abstract fun bindGreetingRepository(
-        impl: GreetingRepositoryImpl,
-    ): GreetingRepository
+    fun provideUserPreferencesRepository(
+        userPreferencesDataStore: UserPreferencesDataStore,
+        dispatcherManager: DispatcherManager,
+    ): UserPreferencesRepository = UserPreferencesRepositoryImpl(
+        userPreferencesDataStore = userPreferencesDataStore,
+        dispatcherManager = dispatcherManager,
+    )
+
+    @Provides
+    @Singleton
+    fun provideGreetingRepository(
+        remoteDataSource: GreetingRemoteDataSource,
+    ): GreetingRepository = GreetingRepositoryImpl(
+        remoteDataSource = remoteDataSource,
+    )
 }

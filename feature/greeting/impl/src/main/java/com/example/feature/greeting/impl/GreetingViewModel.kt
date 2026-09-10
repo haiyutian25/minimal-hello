@@ -23,10 +23,11 @@ import com.example.feature.greeting.impl.screens.AppTypographyChoice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * User-defined greeting overlay state (MVVM lifted from the canvas UI).
@@ -206,22 +207,23 @@ class GreetingViewModel @Inject constructor(
 ) {
 
     init {
-        viewModelScope.launch {
-            userPreferencesRepository.observePreferences().collect { prefs ->
-                sendAction(GreetingAction.Internal.PreferencesReceived(prefs))
-            }
-        }
-        viewModelScope.launch {
-            customFontRepository.installedVersion.collect {
-                val fonts = withContext(Dispatchers.IO) { customFontRepository.installedFonts() }
-                sendAction(GreetingAction.Internal.InstalledFontsReceived(fonts))
-            }
-        }
-        viewModelScope.launch {
-            customFontRepository.downloadProgress.collect { progress ->
-                sendAction(GreetingAction.Internal.DownloadProgressReceived(progress))
-            }
-        }
+        userPreferencesRepository
+            .preferencesStateFlow
+            .map { GreetingAction.Internal.PreferencesReceived(it) }
+            .onEach(::sendAction)
+            .launchIn(viewModelScope)
+
+        customFontRepository
+            .installedVersion
+            .map { GreetingAction.Internal.InstalledFontsReceived(customFontRepository.installedFonts()) }
+            .onEach(::sendAction)
+            .launchIn(viewModelScope)
+
+        customFontRepository
+            .downloadProgress
+            .map { GreetingAction.Internal.DownloadProgressReceived(it) }
+            .onEach(::sendAction)
+            .launchIn(viewModelScope)
     }
 
     override fun handleAction(action: GreetingAction) {
