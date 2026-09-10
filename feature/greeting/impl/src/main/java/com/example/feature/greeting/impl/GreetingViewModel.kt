@@ -351,7 +351,7 @@ class GreetingViewModel @Inject constructor(
             updateState { copy(activeCustomFontId = "") }
             viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont("") }
         }
-        customFontRepository.deleteFont(action.fontId)
+        viewModelScope.launch { customFontRepository.deleteFont(action.fontId) }
         sendEvent(GreetingEvent.ShowToast(R.string.font_deleted_toast))
     }
 

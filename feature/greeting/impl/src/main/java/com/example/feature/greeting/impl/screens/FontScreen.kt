@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -41,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -130,7 +132,7 @@ fun FontScreen(
                 .background(currentTheme.card)
                 .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
         ) {
-            AppTypographyChoice.values().forEachIndexed { index, style ->
+            AppTypographyChoice.entries.forEachIndexed { index, style ->
                 // A system engine reads as selected only while no custom font overrides it.
                 val isSelected = activeCustomFontId.isEmpty() && selectedTypography == style
 
@@ -186,7 +188,7 @@ fun FontScreen(
                     }
                 }
 
-                if (index < AppTypographyChoice.values().size - 1) {
+                if (index < AppTypographyChoice.entries.size - 1) {
                     FontRowDivider(currentTheme)
                 }
             }
@@ -327,8 +329,8 @@ fun FontScreen(
 
                         Box(
                             modifier = Modifier
-                                .clickable { onDeleteCustomFont(font.id) }
-                                .padding(4.dp),
+                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .clickable(role = Role.Button) { onDeleteCustomFont(font.id) },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(

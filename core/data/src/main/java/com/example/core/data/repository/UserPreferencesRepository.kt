@@ -4,6 +4,7 @@ import com.example.core.data.datastore.UserPreferencesDataStore
 import com.example.core.data.manager.dispatcher.DispatcherManager
 import com.example.core.data.model.UserPreferences
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -30,13 +31,15 @@ class UserPreferencesRepositoryImpl(
     dispatcherManager: DispatcherManager,
 ) : UserPreferencesRepository {
 
-    private val unconfinedScope = CoroutineScope(dispatcherManager.unconfined)
+    // Long-lived repository scope on a deterministic dispatcher. A SupervisorJob
+    // keeps a failed collection from killing the scope (and the StateFlow with it).
+    private val repositoryScope = CoroutineScope(SupervisorJob() + dispatcherManager.default)
 
     override val preferencesStateFlow: StateFlow<UserPreferences> =
         userPreferencesDataStore
             .preferences
             .stateIn(
-                scope = unconfinedScope,
+                scope = repositoryScope,
                 started = SharingStarted.Eagerly,
                 initialValue = UserPreferences.DEFAULT,
             )

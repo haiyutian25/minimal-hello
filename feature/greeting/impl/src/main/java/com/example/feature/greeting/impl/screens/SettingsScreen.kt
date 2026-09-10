@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.example.core.data.model.ColorMode
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
+import com.example.core.ui.theme.ThemeResolver
 import com.example.core.ui.theme.isBraun
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
@@ -65,15 +66,8 @@ fun SettingsScreen(
     onColorModeChange: (ColorMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Identify current palette base
-    val currentPresetBase = when {
-        currentTheme.themeId.startsWith("editorial") -> "Editorial"
-        currentTheme.themeId.startsWith("geist") -> "Geist"
-        currentTheme.themeId.startsWith("linear") -> "Linear"
-        currentTheme.themeId.startsWith("shadcn") -> "Shadcn"
-        currentTheme.themeId.startsWith("notion") -> "Notion"
-        else -> "Braun"
-    }
+    // Identify current palette base (single source: ThemeResolver in core:ui).
+    val currentPresetBase = ThemeResolver.familyDisplayNameOf(currentTheme.themeId)
 
     val paletteList = listOf(
         PaletteEntry("Editorial", R.string.settings_palette_editorial_name, R.string.settings_palette_editorial_subtitle, ProductionPalettes.EditorialLight, ProductionPalettes.EditorialDark),

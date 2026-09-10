@@ -13,7 +13,6 @@ interface DispatcherManager {
     val default: CoroutineDispatcher
     val main: MainCoroutineDispatcher
     val io: CoroutineDispatcher
-    val unconfined: CoroutineDispatcher
 }
 
 /**
@@ -23,5 +22,4 @@ class DispatcherManagerImpl : DispatcherManager {
     override val default: CoroutineDispatcher = Dispatchers.Default
     override val main: MainCoroutineDispatcher = Dispatchers.Main
     override val io: CoroutineDispatcher = Dispatchers.IO
-    override val unconfined: CoroutineDispatcher = Dispatchers.Unconfined
 }

@@ -147,7 +147,7 @@ class CustomFontRepository @Inject constructor(
     }
 
     /** Deletes an installed font file and evicts its cached family. */
-    fun deleteFont(fontId: String) {
+    suspend fun deleteFont(fontId: String) = withContext(dispatcherManager.io) {
         File(fontsDir, fontId).delete()
         fontFamilyCache.remove(fontId)
         bumpInstalled()

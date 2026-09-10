@@ -56,8 +56,8 @@ $modeSelector {
   --accent: #${primary.toHex()};
   --primary: #${primary.toHex()};
   --primary-fg: #${primaryForeground.toHex()};
-  --muted: #${mutedForeground.toHex()};
-  --muted-bg: #${muted.toHex()};
+  --muted: #${muted.toHex()};
+  --muted-foreground: #${mutedForeground.toHex()};
   --ring: #${ring.toHex()};
   --radius: ${radiusLg.value.toInt()}px;
 }
@@ -414,6 +414,20 @@ object ThemeResolver {
     /** Palette family key of a concrete themeId ("editorial-light" -> "editorial"). */
     fun familyOf(themeId: String): String =
         themeId.removeSuffix("-light").removeSuffix("-dark")
+
+    /**
+     * User-facing display name for a palette family ("editorial-light" -> "Editorial").
+     * Single source of truth — adding a family only requires one new entry here.
+     */
+    fun familyDisplayNameOf(themeId: String): String =
+        when (familyOf(themeId)) {
+            "editorial" -> "Editorial"
+            "geist" -> "Geist"
+            "linear" -> "Linear"
+            "shadcn" -> "Shadcn"
+            "notion" -> "Notion"
+            else -> "Braun"
+        }
 
     /** Resolves a palette family to its light or dark variant. */
     fun resolveFamily(family: String, isDark: Boolean): CssVariables =

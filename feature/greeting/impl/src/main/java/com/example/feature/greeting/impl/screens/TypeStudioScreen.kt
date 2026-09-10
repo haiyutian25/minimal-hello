@@ -140,7 +140,7 @@ fun TypeStudioScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            AppTypographyChoice.values().forEach { choice ->
+            AppTypographyChoice.entries.forEach { choice ->
                 val isSelected = selectedTypography == choice
                 val bg by animateColorAsState(
                     targetValue = if (isSelected) currentTheme.card else currentTheme.subtleSurface.copy(alpha = 0.5f),

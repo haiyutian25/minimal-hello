@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -81,6 +82,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
+import com.example.core.ui.theme.ThemeResolver
 import com.example.core.ui.theme.isBraun
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
@@ -133,21 +135,16 @@ fun CanvasScreen(
     var isGreetingPressed by remember { mutableStateOf(false) }
     var isCopied by remember { mutableStateOf(false) }
 
-    // Minimal Telemetry: Frame latency simulator / Craft metrics
-    var renderLatencyMs by remember { mutableLongStateOf(4) }
+    // Minimal Telemetry: real composition-to-frame latency, refreshed on theme change.
+    var renderLatencyMs by remember { mutableLongStateOf(0) }
     LaunchedEffect(currentTheme) {
-        renderLatencyMs = (3..5).random().toLong()
+        val startNanos = System.nanoTime()
+        withFrameNanos { }
+        renderLatencyMs = (System.nanoTime() - startNanos) / 1_000_000
     }
 
-    // Palette family identifier
-    val currentPresetBase = when {
-        currentTheme.themeId.startsWith("editorial") -> "Editorial"
-        currentTheme.themeId.startsWith("geist") -> "Geist"
-        currentTheme.themeId.startsWith("linear") -> "Linear"
-        currentTheme.themeId.startsWith("shadcn") -> "Shadcn"
-        currentTheme.themeId.startsWith("notion") -> "Notion"
-        else -> "Braun"
-    }
+    // Palette family display name (single source: ThemeResolver in core:ui).
+    val currentPresetBase = ThemeResolver.familyDisplayNameOf(currentTheme.themeId)
 
     Column(
         modifier = modifier

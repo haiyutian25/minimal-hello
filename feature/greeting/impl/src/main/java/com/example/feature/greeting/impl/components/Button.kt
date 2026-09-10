@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.core.ui.theme.CssVariables
@@ -28,6 +30,13 @@ import com.example.core.ui.theme.CssVariables
 /** Themed-mode chrome defaults: inner padding and hairline border width. */
 private val ButtonDefaultContentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
 private val ButtonDefaultBorderWidth = 1.dp
+
+/**
+ * Minimum touch target per the Android accessibility guidelines
+ * (48dp x 48dp, see developer.android.com/guide/topics/ui/accessibility).
+ * Smaller visuals keep their size; the extra area stays transparent.
+ */
+private val ButtonMinTouchTarget = 48.dp
 
 /** Card button defaults: selection-aware border widths and content padding. */
 private val CardButtonSelectedBorderWidth = 2.dp
@@ -78,25 +87,29 @@ fun Button(
 
     val tagged = if (testTag != null) modifier.testTag(testTag) else modifier
     val clickModifier = if (rippleEnabled) {
-        Modifier.clickable(onClick = onClick)
+        Modifier.clickable(role = Role.Button, onClick = onClick)
     } else {
         Modifier.clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = null,
+            role = Role.Button,
             onClick = onClick
         )
     }
 
     Box(
         modifier = tagged
+            .sizeIn(minWidth = ButtonMinTouchTarget, minHeight = ButtonMinTouchTarget)
             .clip(resolvedShape)
-            .then(clickModifier)
+            .then(clickModifier),
+        contentAlignment = Alignment.Center
     ) {
         if (currentTheme != null) {
             // Themed mode: the button owns the chrome; every value overridable.
             Box(
                 modifier = Modifier
                     .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
+                    .sizeIn(minWidth = ButtonMinTouchTarget, minHeight = ButtonMinTouchTarget)
                     .background(containerColor ?: currentTheme.subtleSurface)
                     .border(
                         border = border ?: BorderStroke(ButtonDefaultBorderWidth, currentTheme.border),

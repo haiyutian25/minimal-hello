@@ -191,9 +191,9 @@ NavDisplay(
 
 ### 5.1 CssVariables 数据模型
 
-`core/ui/theme/CssTokens.kt` 定义 **13 个颜色令牌 + 3 个圆角令牌**，一一对应 CSS Custom Properties：`background(--bg) / foreground(--text) / card(--surface) / cardForeground / border / primary(--accent) / primaryForeground / muted(--muted-bg) / mutedForeground(--muted) / accent / accentForeground / ring / subtleSurface` + `radiusSm=10dp / radiusMd=16dp / radiusLg=24dp`。
+`core/ui/theme/CssTokens.kt` 定义 **13 个颜色令牌 + 3 个圆角令牌**，一一对应 CSS Custom Properties：`background(--bg) / foreground(--text) / card(--surface) / cardForeground / border / primary(--accent) / primaryForeground / muted(--muted) / mutedForeground(--muted-foreground) / accent / accentForeground / ring / subtleSurface` + `radiusSm=10dp / radiusMd=16dp / radiusLg=24dp`。
 
-> ⚠️ `toCssString()` 导出时 `--muted` 对应 `mutedForeground`（文字色），背景色 `muted` 导出为非标准的 `--muted-bg`。直接用于 Web 端需留意语义差异。
+> ✅ `toCssString()` 遵循 shadcn 约定导出：`--muted` 为背景色、`--muted-foreground` 为文字色，可直接用于 Web 端。
 
 ### 5.2 12 套预设（ProductionPalettes）
 
@@ -394,12 +394,9 @@ gradle :app:testDebugUnitTest     # 单元测试 + 截图测试
 
 1. **未使用的依赖模块**：`core:network` 为空契约占位（Retrofit/OkHttp 已接入 Hilt 但无端点）。
 2. **主题家族前缀兜底**：`else -> "Braun"` 分支在新增家族时可能误判，需同步维护。
-3. **`toCssString()` 语义偏差**：`--muted` 导出文字色、背景色用非标准 `--muted-bg`，Web 端复用需注意。
-4. **侧边栏 5dp 裁剪**：槽宽 295dp 与内容 300dp 不同步，调整时两处一起改。
-5. **假遥测**：画布 "Xms" 延迟药丸为随机模拟值，非真实性能指标。
-6. **截图基准**：`tokens.png` 基准图需用 `-Proborazzi.test.record=true` 生成后入库。
-7. **触控目标**：顶栏部分 28dp 按钮低于 48dp 无障碍建议值。
-8. **debug 密钥库**：`debug.keystore` 被 gitignore，新环境需按 README 用 keytool 生成。
+3. **侧边栏 5dp 裁剪**：槽宽 295dp 与内容 300dp 不同步，调整时两处一起改。
+4. **截图基准**：`tokens.png` 基准图需用 `-Proborazzi.test.record=true` 生成后入库。
+5. **debug 密钥库**：`debug.keystore` 被 gitignore，新环境需按 README 用 keytool 生成。
 
 ---
 

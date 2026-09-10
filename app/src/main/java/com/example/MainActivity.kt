@@ -1,6 +1,7 @@
 package com.example
 
 import android.os.Bundle
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
@@ -27,6 +28,13 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    private companion object {
+        // Scrims mirroring enableEdgeToEdge()'s auto defaults in activity-compose.
+        val defaultLightScrim: Int = android.graphics.Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
+        val defaultDarkScrim: Int = android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -39,6 +47,30 @@ class MainActivity : AppCompatActivity() {
             val isSystemDark = isSystemInDarkTheme()
             LaunchedEffect(isSystemDark) {
                 viewModel.trySendAction(GreetingAction.SystemDarkModeChanged(isSystemDark))
+            }
+
+            // Re-apply system bar styles whenever the resolved in-app theme
+            // flips between light and dark. The default enableEdgeToEdge()
+            // above follows the resource-level mode (themes.xml stays Light),
+            // so pinning dark mode in-app would leave dark status bar icons
+            // on a dark background.
+            val isAppDark = state.theme.isDark
+            LaunchedEffect(isAppDark) {
+                enableEdgeToEdge(
+                    statusBarStyle = if (isAppDark) {
+                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    } else {
+                        SystemBarStyle.light(
+                            android.graphics.Color.TRANSPARENT,
+                            android.graphics.Color.TRANSPARENT
+                        )
+                    },
+                    navigationBarStyle = if (isAppDark) {
+                        SystemBarStyle.dark(defaultDarkScrim)
+                    } else {
+                        SystemBarStyle.light(defaultLightScrim, defaultDarkScrim)
+                    }
+                )
             }
 
             // Broadcast the resolved content font (system engine or an installed

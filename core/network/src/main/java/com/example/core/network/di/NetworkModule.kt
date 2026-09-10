@@ -1,5 +1,6 @@
 package com.example.core.network.di
 
+import com.example.core.network.BuildConfig
 import com.example.core.network.GreetingApi
 import dagger.Module
 import dagger.Provides
@@ -38,7 +39,13 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient =
         OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC))
+            // Log request/response lines in debug builds only; release stays silent.
+            .addInterceptor(
+                HttpLoggingInterceptor().setLevel(
+                    if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC
+                    else HttpLoggingInterceptor.Level.NONE
+                )
+            )
             .build()
 
     @Provides
