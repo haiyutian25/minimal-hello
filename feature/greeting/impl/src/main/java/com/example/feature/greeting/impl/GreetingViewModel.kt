@@ -3,15 +3,16 @@ package com.example.feature.greeting.impl
 import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.data.model.ColorMode
 import com.example.core.data.model.UserPreferences
 import com.example.core.data.repository.GreetingRepository
 import com.example.core.data.repository.HeroQuote
 import com.example.core.data.repository.UserPreferencesRepository
+import com.example.core.ui.base.BaseViewModel
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ThemeResolver
 import com.example.feature.greeting.impl.components.NavigationTab
@@ -23,18 +24,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * User-defined greeting overlay state (MVVM lifted from the canvas UI).
@@ -53,279 +45,408 @@ data class CustomGreetingState(
 enum class SettingsLevel { NONE, MENU, PAGE, LANGUAGE, FONT, FONT_SIZE }
 
 /**
- * Single ViewModel backing the greeting feature (MVVM).
+ * Single immutable UI state for the greeting feature (UDF).
  *
- * Owns navigation-independent UI state (theme, typography, tab, sidebar,
- * inspector, greeting content) and persists user preferences through the
- * data layer.
+ * [theme] and [activeContentFont] are derived from the raw preference fields by the
+ * ViewModel on every state update; all other fields are set directly by actions.
+ */
+data class GreetingState(
+    // Raw preference inputs
+    val themeId: String,
+    val colorMode: ColorMode,
+    val primaryOverride: Color?,
+    val isSystemDark: Boolean,
+    // Derived
+    val theme: CssVariables,
+    val activeContentFont: FontFamily,
+    // Navigation / chrome
+    val currentTab: NavigationTab,
+    val isSidebarOpen: Boolean,
+    val isInspectorVisible: Boolean,
+    val settingsLevel: SettingsLevel,
+    // Typography
+    val typographyChoice: AppTypographyChoice,
+    val fontScale: Float,
+    val activeCustomFontId: String,
+    val installedFonts: List<InstalledFont>,
+    val downloadProgress: Map<String, Float>,
+    // Content
+    val greetingIndex: Int,
+    val customGreeting: CustomGreetingState,
+    val heroQuotes: List<HeroQuote>,
+    val heroCaptions: List<Int>,
+)
+
+/**
+ * One-time events emitted by [GreetingViewModel]; consumed exactly once by the UI.
+ */
+sealed interface GreetingEvent {
+    /** Show a transient toast carrying a string resource. */
+    data class ShowToast(@StringRes val messageRes: Int) : GreetingEvent
+}
+
+/**
+ * Actions sent from the UI to [GreetingViewModel] via [BaseViewModel.trySendAction].
+ */
+sealed interface GreetingAction {
+
+    data class TabSelected(val tab: NavigationTab) : GreetingAction
+    data object SidebarOpened : GreetingAction
+    data object SidebarClosed : GreetingAction
+    data object SidebarToggled : GreetingAction
+
+    data object InspectorShown : GreetingAction
+    data object InspectorDismissed : GreetingAction
+    data class PrimaryColorOverridden(val color: Color) : GreetingAction
+
+    data object NextGreetingClicked : GreetingAction
+    data class CustomGreetingChanged(val part1: String, val part2: String) : GreetingAction
+
+    data class ThemeSelected(val palette: CssVariables) : GreetingAction
+    data class ColorModeChanged(val mode: ColorMode) : GreetingAction
+    data class SystemDarkModeChanged(val isDark: Boolean) : GreetingAction
+
+    data class TypographySelected(val choice: AppTypographyChoice) : GreetingAction
+    data class CustomFontSelected(val fontId: String) : GreetingAction
+    data class FontDownloadClicked(val preset: PresetFont) : GreetingAction
+    data class FontDeleteClicked(val fontId: String) : GreetingAction
+    data class FontImportRequested(val uri: Uri, val fallbackName: String) : GreetingAction
+    data class FontScaleSaved(val scale: Float) : GreetingAction
+
+    data object SettingsMenuOpened : GreetingAction
+    data object AppearanceSettingsOpened : GreetingAction
+    data object LanguageSettingsOpened : GreetingAction
+    data object FontSettingsOpened : GreetingAction
+    data object FontSizeSettingsOpened : GreetingAction
+    data object SettingsBackPressed : GreetingAction
+    data object SettingsExited : GreetingAction
+
+    /**
+     * Internal actions: results of asynchronous work posted back onto the action
+     * channel so that all state mutations stay synchronous inside [handleAction].
+     */
+    sealed interface Internal : GreetingAction {
+        data class PreferencesReceived(val preferences: UserPreferences) : Internal
+        data class InstalledFontsReceived(val fonts: List<InstalledFont>) : Internal
+        data class DownloadProgressReceived(val progress: Map<String, Float>) : Internal
+        data class FontDownloadCompleted(val success: Boolean) : Internal
+        data class FontImportCompleted(val fontId: String?) : Internal
+    }
+}
+
+/**
+ * Resolves the effective [CssVariables] from the raw theme inputs.
+ */
+private fun resolveTheme(
+    themeId: String,
+    colorMode: ColorMode,
+    primaryOverride: Color?,
+    isSystemDark: Boolean,
+): CssVariables {
+    val family = ThemeResolver.familyOf(themeId)
+    val effectiveIsDark = when (colorMode) {
+        ColorMode.LIGHT -> false
+        ColorMode.DARK -> true
+        ColorMode.SYSTEM -> isSystemDark
+    }
+    val base = ThemeResolver.resolveFamily(family, effectiveIsDark)
+    return if (primaryOverride != null) {
+        base.copy(primary = primaryOverride, ring = primaryOverride, accent = primaryOverride)
+    } else {
+        base
+    }
+}
+
+/**
+ * Single ViewModel backing the greeting feature (MVVM + unidirectional data flow).
+ *
+ * The UI renders [stateFlow] and sends every user intent as a [GreetingAction];
+ * one-shot feedback (toasts) is delivered through [eventFlow]. State mutations
+ * happen synchronously inside [handleAction]; asynchronous work (persistence,
+ * font downloads) posts follow-up [GreetingAction.Internal] actions.
  */
 @HiltViewModel
 class GreetingViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @ApplicationContext appContext: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val customFontRepository: CustomFontRepository,
     greetingRepository: GreetingRepository,
-) : ViewModel() {
-
-    val heroQuotes: List<HeroQuote> = greetingRepository.heroQuotes
-    val heroCaptions: List<Int> = greetingRepository.heroCaptions
-
-    private val _uiEvents = Channel<UiEvent>(Channel.BUFFERED)
-    /** One-time UI events (e.g. toasts); consumed exactly once by the UI. */
-    val uiEvents: Flow<UiEvent> = _uiEvents.receiveAsFlow()
-
-    private fun emitUiEvent(event: UiEvent) {
-        viewModelScope.launch { _uiEvents.send(event) }
-    }
-
-    private val _currentTab = MutableStateFlow(NavigationTab.CANVAS)
-    val currentTab: StateFlow<NavigationTab> = _currentTab.asStateFlow()
-
-    private val _isSidebarOpen = MutableStateFlow(false)
-    val isSidebarOpen: StateFlow<Boolean> = _isSidebarOpen.asStateFlow()
-
-    private val _isInspectorVisible = MutableStateFlow(false)
-    val isInspectorVisible: StateFlow<Boolean> = _isInspectorVisible.asStateFlow()
-
-    private val _themeId = MutableStateFlow(UserPreferences.DEFAULT.themeId)
-    private val _colorMode = MutableStateFlow(ColorMode.fromId(UserPreferences.DEFAULT.colorMode))
-    private val _primaryOverride = MutableStateFlow<Color?>(null)
-
-    // System dark-mode state, seeded from the app configuration and kept in
-    // sync by the UI layer; it drives the SYSTEM color mode.
-    private val _isSystemDark = MutableStateFlow(
-        (appContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-            Configuration.UI_MODE_NIGHT_YES
-    )
-
-    val colorMode: StateFlow<ColorMode> = _colorMode.asStateFlow()
-
-    val currentTheme: StateFlow<CssVariables> =
-        combine(_themeId, _colorMode, _primaryOverride, _isSystemDark) { themeId, colorMode, primaryOverride, isSystemDark ->
-            val family = ThemeResolver.familyOf(themeId)
-            val effectiveIsDark = when (colorMode) {
-                ColorMode.LIGHT -> false
-                ColorMode.DARK -> true
-                ColorMode.SYSTEM -> isSystemDark
-            }
-            val base = ThemeResolver.resolveFamily(family, effectiveIsDark)
-            if (primaryOverride != null) {
-                base.copy(primary = primaryOverride, ring = primaryOverride, accent = primaryOverride)
-            } else {
-                base
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = ThemeResolver.fromThemeId(UserPreferences.DEFAULT.themeId),
+) : BaseViewModel<GreetingState, GreetingEvent, GreetingAction>(
+    initialState = run {
+        val isSystemDark =
+            (appContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        GreetingState(
+            themeId = UserPreferences.DEFAULT.themeId,
+            colorMode = ColorMode.fromId(UserPreferences.DEFAULT.colorMode),
+            primaryOverride = null,
+            isSystemDark = isSystemDark,
+            theme = resolveTheme(
+                themeId = UserPreferences.DEFAULT.themeId,
+                colorMode = ColorMode.fromId(UserPreferences.DEFAULT.colorMode),
+                primaryOverride = null,
+                isSystemDark = isSystemDark,
+            ),
+            activeContentFont = AppTypographyChoice.EDITORIAL.font,
+            currentTab = NavigationTab.CANVAS,
+            isSidebarOpen = false,
+            isInspectorVisible = false,
+            settingsLevel = SettingsLevel.NONE,
+            typographyChoice = AppTypographyChoice.EDITORIAL,
+            fontScale = UserPreferences.DEFAULT.fontScale,
+            activeCustomFontId = UserPreferences.DEFAULT.activeCustomFontId,
+            installedFonts = emptyList(),
+            downloadProgress = emptyMap(),
+            greetingIndex = 0,
+            customGreeting = CustomGreetingState(),
+            heroQuotes = greetingRepository.heroQuotes,
+            heroCaptions = greetingRepository.heroCaptions,
         )
-
-    private val _typographyChoice = MutableStateFlow(AppTypographyChoice.EDITORIAL)
-    val typographyChoice: StateFlow<AppTypographyChoice> = _typographyChoice.asStateFlow()
-
-    private val _fontScale = MutableStateFlow(UserPreferences.DEFAULT.fontScale)
-    val fontScale: StateFlow<Float> = _fontScale.asStateFlow()
-
-    private val _activeCustomFontId = MutableStateFlow(UserPreferences.DEFAULT.activeCustomFontId)
-    val activeCustomFontId: StateFlow<String> = _activeCustomFontId.asStateFlow()
-
-    /** Installed custom fonts (downloaded presets + user imports). */
-    val installedFonts: StateFlow<List<InstalledFont>> = customFontRepository.installedVersion
-        .map { customFontRepository.installedFonts() }
-        .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    /** fontId -> live download progress (0f..1f) while a preset is downloading. */
-    val downloadProgress: StateFlow<Map<String, Float>> = customFontRepository.downloadProgress
-
-    /**
-     * The app-wide content font. Resolves to the active custom font when one is
-     * selected and installed, otherwise falls back to the system typography engine.
-     */
-    val activeContentFont: StateFlow<FontFamily> =
-        combine(_typographyChoice, _activeCustomFontId) { choice, customFontId ->
-            customFontRepository.fontFamilyFor(customFontId) ?: choice.font
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, AppTypographyChoice.EDITORIAL.font)
-
-    private val _greetingIndex = MutableStateFlow(0)
-    val greetingIndex: StateFlow<Int> = _greetingIndex.asStateFlow()
-
-    private val _customGreeting = MutableStateFlow(CustomGreetingState())
-    val customGreeting: StateFlow<CustomGreetingState> = _customGreeting.asStateFlow()
-
-    private val _settingsLevel = MutableStateFlow(SettingsLevel.NONE)
-    val settingsLevel: StateFlow<SettingsLevel> = _settingsLevel.asStateFlow()
+    },
+) {
 
     init {
         viewModelScope.launch {
             userPreferencesRepository.observePreferences().collect { prefs ->
-                _themeId.value = prefs.themeId
-                _colorMode.value = ColorMode.fromId(prefs.colorMode)
-                _typographyChoice.value = AppTypographyChoice.entries
-                    .firstOrNull { it.name == prefs.typographyChoice }
-                    ?: AppTypographyChoice.EDITORIAL
-                _fontScale.value = prefs.fontScale
-                _activeCustomFontId.value = prefs.activeCustomFontId
+                sendAction(GreetingAction.Internal.PreferencesReceived(prefs))
+            }
+        }
+        viewModelScope.launch {
+            customFontRepository.installedVersion.collect {
+                val fonts = withContext(Dispatchers.IO) { customFontRepository.installedFonts() }
+                sendAction(GreetingAction.Internal.InstalledFontsReceived(fonts))
+            }
+        }
+        viewModelScope.launch {
+            customFontRepository.downloadProgress.collect { progress ->
+                sendAction(GreetingAction.Internal.DownloadProgressReceived(progress))
             }
         }
     }
 
-    fun selectTab(tab: NavigationTab) {
-        _currentTab.value = tab
+    override fun handleAction(action: GreetingAction) {
+        when (action) {
+            is GreetingAction.TabSelected -> updateState { copy(currentTab = action.tab) }
+            GreetingAction.SidebarOpened -> updateState { copy(isSidebarOpen = true) }
+            GreetingAction.SidebarClosed -> updateState { copy(isSidebarOpen = false) }
+            GreetingAction.SidebarToggled -> updateState { copy(isSidebarOpen = !isSidebarOpen) }
+
+            GreetingAction.InspectorShown -> updateState { copy(isInspectorVisible = true) }
+            GreetingAction.InspectorDismissed -> updateState { copy(isInspectorVisible = false) }
+            is GreetingAction.PrimaryColorOverridden -> {
+                updateState { copy(primaryOverride = action.color) }
+            }
+
+            GreetingAction.NextGreetingClicked -> handleNextGreetingClicked()
+            is GreetingAction.CustomGreetingChanged -> {
+                updateState {
+                    copy(
+                        customGreeting = CustomGreetingState(
+                            part1 = action.part1,
+                            part2 = action.part2,
+                            isActive = true,
+                        ),
+                    )
+                }
+            }
+
+            is GreetingAction.ThemeSelected -> handleThemeSelected(action)
+            is GreetingAction.ColorModeChanged -> handleColorModeChanged(action)
+            is GreetingAction.SystemDarkModeChanged -> {
+                if (state.isSystemDark != action.isDark) {
+                    updateState { copy(isSystemDark = action.isDark) }
+                }
+            }
+
+            is GreetingAction.TypographySelected -> handleTypographySelected(action)
+            is GreetingAction.CustomFontSelected -> handleCustomFontSelected(action)
+            is GreetingAction.FontDownloadClicked -> handleFontDownloadClicked(action)
+            is GreetingAction.FontDeleteClicked -> handleFontDeleteClicked(action)
+            is GreetingAction.FontImportRequested -> handleFontImportRequested(action)
+            is GreetingAction.FontScaleSaved -> handleFontScaleSaved(action)
+
+            GreetingAction.SettingsMenuOpened -> {
+                updateState { copy(settingsLevel = SettingsLevel.MENU) }
+            }
+            GreetingAction.AppearanceSettingsOpened -> {
+                updateState { copy(settingsLevel = SettingsLevel.PAGE) }
+            }
+            GreetingAction.LanguageSettingsOpened -> {
+                updateState { copy(settingsLevel = SettingsLevel.LANGUAGE) }
+            }
+            GreetingAction.FontSettingsOpened -> {
+                updateState { copy(settingsLevel = SettingsLevel.FONT) }
+            }
+            GreetingAction.FontSizeSettingsOpened -> {
+                updateState { copy(settingsLevel = SettingsLevel.FONT_SIZE) }
+            }
+            GreetingAction.SettingsBackPressed -> handleSettingsBackPressed()
+            GreetingAction.SettingsExited -> {
+                updateState { copy(settingsLevel = SettingsLevel.NONE) }
+            }
+
+            is GreetingAction.Internal.PreferencesReceived -> handlePreferencesReceived(action)
+            is GreetingAction.Internal.InstalledFontsReceived -> {
+                updateState { copy(installedFonts = action.fonts) }
+            }
+            is GreetingAction.Internal.DownloadProgressReceived -> {
+                updateState { copy(downloadProgress = action.progress) }
+            }
+            is GreetingAction.Internal.FontDownloadCompleted -> handleFontDownloadCompleted(action)
+            is GreetingAction.Internal.FontImportCompleted -> handleFontImportCompleted(action)
+        }
     }
 
-    fun openSidebar() {
-        _isSidebarOpen.value = true
-    }
-
-    fun closeSidebar() {
-        _isSidebarOpen.value = false
-    }
-
-    fun toggleSidebar() {
-        _isSidebarOpen.value = !_isSidebarOpen.value
-    }
-
-    fun showInspector() {
-        _isInspectorVisible.value = true
-    }
-
-    fun hideInspector() {
-        _isInspectorVisible.value = false
-    }
+    // region Action handlers
 
     /** Cycles to the next curated statement, deactivating any custom greeting. */
-    fun nextGreeting() {
-        if (_customGreeting.value.isActive) {
-            _customGreeting.value = _customGreeting.value.copy(isActive = false)
-        }
-        _greetingIndex.value = (_greetingIndex.value + 1) % heroQuotes.size
-    }
-
-    /** Live-updates the custom greeting while the user types. */
-    fun updateCustomGreeting(part1: String, part2: String) {
-        _customGreeting.value = CustomGreetingState(part1 = part1, part2 = part2, isActive = true)
-    }
-
-    fun selectTypography(choice: AppTypographyChoice) {
-        _typographyChoice.value = choice
-        // Selecting a system engine clears any custom-font override.
-        _activeCustomFontId.value = ""
-        viewModelScope.launch {
-            userPreferencesRepository.updateTypography(choice.name)
-            userPreferencesRepository.updateActiveCustomFont("")
-        }
-    }
-
-    /** Selects an installed custom font as the app-wide content font. */
-    fun selectCustomFont(fontId: String) {
-        _activeCustomFontId.value = fontId
-        viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont(fontId) }
-    }
-
-    /** Starts downloading a preset font; progress is exposed via [downloadProgress]. */
-    fun downloadFont(preset: PresetFont) {
-        viewModelScope.launch {
-            val success = customFontRepository.downloadPreset(preset)
-            emitUiEvent(
-                UiEvent.ShowToast(
-                    if (success) R.string.font_download_complete_toast
-                    else R.string.font_download_failed_toast
-                )
+    private fun handleNextGreetingClicked() {
+        updateState {
+            copy(
+                customGreeting = if (customGreeting.isActive) {
+                    customGreeting.copy(isActive = false)
+                } else {
+                    customGreeting
+                },
+                greetingIndex = (greetingIndex + 1) % heroQuotes.size,
             )
         }
     }
 
-    /** Deletes an installed font, clearing it if it was the active selection. */
-    fun deleteFont(fontId: String) {
-        if (_activeCustomFontId.value == fontId) {
-            _activeCustomFontId.value = ""
-            viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont("") }
-        }
-        customFontRepository.deleteFont(fontId)
-        emitUiEvent(UiEvent.ShowToast(R.string.font_deleted_toast))
+    private fun handleThemeSelected(action: GreetingAction.ThemeSelected) {
+        updateState { copy(primaryOverride = null, themeId = action.palette.themeId) }
+        viewModelScope.launch { userPreferencesRepository.updateTheme(action.palette.themeId) }
     }
 
-    /** Imports a user-picked font file and makes it the active content font. */
-    fun importFont(uri: Uri, fallbackName: String) {
+    private fun handleColorModeChanged(action: GreetingAction.ColorModeChanged) {
+        updateState { copy(colorMode = action.mode) }
+        viewModelScope.launch { userPreferencesRepository.updateColorMode(action.mode.id) }
+    }
+
+    private fun handleTypographySelected(action: GreetingAction.TypographySelected) {
+        // Selecting a system engine clears any custom-font override.
+        updateState { copy(typographyChoice = action.choice, activeCustomFontId = "") }
         viewModelScope.launch {
-            val fontId = customFontRepository.importFont(uri, fallbackName)
-            if (fontId != null) {
-                selectCustomFont(fontId)
-                emitUiEvent(UiEvent.ShowToast(R.string.font_imported_toast))
-            } else {
-                emitUiEvent(UiEvent.ShowToast(R.string.font_import_failed_toast))
-            }
+            userPreferencesRepository.updateTypography(action.choice.name)
+            userPreferencesRepository.updateActiveCustomFont("")
+        }
+    }
+
+    private fun handleCustomFontSelected(action: GreetingAction.CustomFontSelected) {
+        updateState { copy(activeCustomFontId = action.fontId) }
+        viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont(action.fontId) }
+    }
+
+    private fun handleFontDownloadClicked(action: GreetingAction.FontDownloadClicked) {
+        viewModelScope.launch {
+            val success = customFontRepository.downloadPreset(action.preset)
+            sendAction(GreetingAction.Internal.FontDownloadCompleted(success))
+        }
+    }
+
+    private fun handleFontDeleteClicked(action: GreetingAction.FontDeleteClicked) {
+        if (state.activeCustomFontId == action.fontId) {
+            updateState { copy(activeCustomFontId = "") }
+            viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont("") }
+        }
+        customFontRepository.deleteFont(action.fontId)
+        sendEvent(GreetingEvent.ShowToast(R.string.font_deleted_toast))
+    }
+
+    private fun handleFontImportRequested(action: GreetingAction.FontImportRequested) {
+        viewModelScope.launch {
+            val fontId = customFontRepository.importFont(action.uri, action.fallbackName)
+            sendAction(GreetingAction.Internal.FontImportCompleted(fontId))
+        }
+    }
+
+    private fun handleFontScaleSaved(action: GreetingAction.FontScaleSaved) {
+        updateState { copy(fontScale = action.scale) }
+        viewModelScope.launch { userPreferencesRepository.updateFontScale(action.scale) }
+    }
+
+    /** Steps one settings level back (PAGE -> MENU -> NONE). */
+    private fun handleSettingsBackPressed() {
+        updateState {
+            copy(
+                settingsLevel = when (settingsLevel) {
+                    SettingsLevel.PAGE,
+                    SettingsLevel.LANGUAGE,
+                    SettingsLevel.FONT,
+                    -> SettingsLevel.MENU
+                    SettingsLevel.FONT_SIZE -> SettingsLevel.FONT
+                    SettingsLevel.MENU,
+                    SettingsLevel.NONE,
+                    -> SettingsLevel.NONE
+                },
+            )
+        }
+    }
+
+    // endregion
+
+    // region Internal action handlers
+
+    private fun handlePreferencesReceived(action: GreetingAction.Internal.PreferencesReceived) {
+        val prefs = action.preferences
+        updateState {
+            copy(
+                themeId = prefs.themeId,
+                colorMode = ColorMode.fromId(prefs.colorMode),
+                typographyChoice = AppTypographyChoice.entries
+                    .firstOrNull { it.name == prefs.typographyChoice }
+                    ?: AppTypographyChoice.EDITORIAL,
+                fontScale = prefs.fontScale,
+                activeCustomFontId = prefs.activeCustomFontId,
+            )
+        }
+    }
+
+    private fun handleFontDownloadCompleted(action: GreetingAction.Internal.FontDownloadCompleted) {
+        sendEvent(
+            GreetingEvent.ShowToast(
+                if (action.success) {
+                    R.string.font_download_complete_toast
+                } else {
+                    R.string.font_download_failed_toast
+                },
+            ),
+        )
+    }
+
+    private fun handleFontImportCompleted(action: GreetingAction.Internal.FontImportCompleted) {
+        val fontId = action.fontId
+        if (fontId != null) {
+            updateState { copy(activeCustomFontId = fontId) }
+            viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont(fontId) }
+            sendEvent(GreetingEvent.ShowToast(R.string.font_imported_toast))
+        } else {
+            sendEvent(GreetingEvent.ShowToast(R.string.font_import_failed_toast))
+        }
+    }
+
+    // endregion
+
+    /**
+     * Updates [mutableStateFlow] and re-derives the derived fields ([GreetingState.theme],
+     * [GreetingState.activeContentFont]) so they always stay consistent with the raw inputs.
+     */
+    private inline fun updateState(block: GreetingState.() -> GreetingState) {
+        mutableStateFlow.update { current ->
+            val next = current.block()
+            next.copy(
+                theme = resolveTheme(
+                    themeId = next.themeId,
+                    colorMode = next.colorMode,
+                    primaryOverride = next.primaryOverride,
+                    isSystemDark = next.isSystemDark,
+                ),
+                activeContentFont = customFontRepository.fontFamilyFor(next.activeCustomFontId)
+                    ?: next.typographyChoice.font,
+            )
         }
     }
 
     /** Resolves an installed custom font to a [FontFamily] for UI previews. */
     fun customFontFamily(fontId: String): FontFamily? = customFontRepository.fontFamilyFor(fontId)
-
-    /** Sets the app-wide font scale and persists it. */
-    fun setFontScale(scale: Float) {
-        _fontScale.value = scale
-        viewModelScope.launch { userPreferencesRepository.updateFontScale(scale) }
-    }
-
-    fun selectTheme(palette: CssVariables) {
-        _primaryOverride.value = null
-        _themeId.value = palette.themeId
-        viewModelScope.launch { userPreferencesRepository.updateTheme(palette.themeId) }
-    }
-
-    /** Sets the color mode (follow-system / light / dark) and persists it. */
-    fun setColorMode(mode: ColorMode) {
-        _colorMode.value = mode
-        viewModelScope.launch { userPreferencesRepository.updateColorMode(mode.id) }
-    }
-
-    /** Feeds the current system dark-mode state (drives the SYSTEM color mode). */
-    fun setSystemDarkMode(isDark: Boolean) {
-        if (_isSystemDark.value != isDark) {
-            _isSystemDark.value = isDark
-        }
-    }
-
-    /** Transient primary-color override from the CSS inspector (not persisted). */
-    fun overridePrimary(color: Color) {
-        _primaryOverride.value = color
-    }
-
-    fun openSettingsMenu() {
-        _settingsLevel.value = SettingsLevel.MENU
-    }
-
-    fun openAppearanceSettings() {
-        _settingsLevel.value = SettingsLevel.PAGE
-    }
-
-    fun openLanguageSettings() {
-        _settingsLevel.value = SettingsLevel.LANGUAGE
-    }
-
-    fun openFontSettings() {
-        _settingsLevel.value = SettingsLevel.FONT
-    }
-
-    fun openFontSizeSettings() {
-        _settingsLevel.value = SettingsLevel.FONT_SIZE
-    }
-
-    /** Steps one settings level back (PAGE -> MENU -> NONE). */
-    fun backSettings() {
-        when (_settingsLevel.value) {
-            SettingsLevel.PAGE -> _settingsLevel.value = SettingsLevel.MENU
-            SettingsLevel.LANGUAGE -> _settingsLevel.value = SettingsLevel.MENU
-            SettingsLevel.FONT -> _settingsLevel.value = SettingsLevel.MENU
-            SettingsLevel.FONT_SIZE -> _settingsLevel.value = SettingsLevel.FONT
-            SettingsLevel.MENU -> _settingsLevel.value = SettingsLevel.NONE
-            SettingsLevel.NONE -> Unit
-        }
-    }
-
-    /** Exits the settings flow entirely (e.g. when a bottom-nav tab is tapped). */
-    fun exitSettings() {
-        _settingsLevel.value = SettingsLevel.NONE
-    }
 }

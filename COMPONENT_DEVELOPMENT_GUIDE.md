@@ -86,40 +86,42 @@ core:network（独立，Hilt 图谱在 app 汇聚）
 
 ### 2.1 GreetingViewModel（feature:greeting:impl）
 
-`@HiltViewModel` 注入 `UserPreferencesRepository` 与 `GreetingRepository`，以 `StateFlow` 暴露全部功能状态：
+`@HiltViewModel` 注入 `UserPreferencesRepository` 与 `GreetingRepository`，继承 `core:ui` 的
+`BaseViewModel<GreetingState, GreetingEvent, GreetingAction>`，以 UDF 三要素对外：
 
-| StateFlow | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `currentTheme` | `CssVariables` | 由 `themeId` + `primaryOverride` 经 `combine` 合成 |
-| `typographyChoice` | `AppTypographyChoice` | EDITORIAL / SANS / MONO，持久化 |
-| `currentTab` | `NavigationTab` | CANVAS / TYPOGRAPHY / TOKENS / SETTINGS |
-| `isSidebarOpen` / `isInspectorVisible` | `Boolean` | 瞬态 UI 状态 |
-| `greetingIndex` | `Int` | 策展语录循环下标 |
-| `customGreeting` | `CustomGreetingState` | 自定义问候（part1/part2/isActive） |
+- **State**：单一不可变 `GreetingState`（`stateFlow`），聚合主题/排版/字体/标签页/侧栏/审查器/
+  问候/设置层级等全部状态；`theme` 与 `activeContentFont` 为派生字段，每次更新自动重算。
+- **Action**：所有用户意图收敛为 `GreetingAction` sealed interface（如 `TabSelected`、
+  `ThemeSelected`、`NextGreetingClicked`、设置导航系列），UI 一律 `trySendAction(...)` 发送。
+- **Event**：一次性反馈（Toast）走 `GreetingEvent`（`eventFlow`），UI 经 `EventsEffect` 消费。
 
-意图方法（View → ViewModel）：`selectTab / openSidebar / closeSidebar / toggleSidebar / showInspector / hideInspector / nextGreeting / updateCustomGreeting / selectTypography / selectTheme / overridePrimary`。
+异步结果（偏好读取、字体下载/导入）通过 `GreetingAction.Internal.*` 回流 action 管道，
+保证状态变更全部同步发生在 `handleAction` 内。
 
 ### 2.2 持久化回路（修复了旧版"重启即失忆"问题）
 
 ```
-用户选择主题/排版 → ViewModel.selectTheme()/selectTypography()
+用户选择主题/排版 → trySendAction(GreetingAction.ThemeSelected/TypographySelected)
+    → handleAction 同步更新 GreetingState
     → viewModelScope.launch { repository.updateTheme()/updateTypography() }
     → Room upsert（user_preferences 单行表）
-    → DAO Flow 发射 → init 中的 collect 回填 _themeId/_typographyChoice
+    → DAO Flow 发射 → Internal.PreferencesReceived action → 同步回填 GreetingState
 ```
 
 - 主题解析集中在 `core:ui` 的 `ThemeResolver.fromThemeId(themeId)`（未知 ID 兜底 EditorialLight）。
-- 审查器的 `--primary` 实时覆盖是**瞬态**的（`_primaryOverride`），不入库，与旧版行为一致。
+- 审查器的 `--primary` 实时覆盖是**瞬态**的（`GreetingState.primaryOverride`），不入库，与旧版行为一致。
 
 ### 2.3 View 层观察方式
 
-所有屏幕通过 `collectAsState()` 观察 StateFlow，回调直接调用 VM 方法：
+所有屏幕通过 `collectAsStateWithLifecycle()` 观察单一 `stateFlow`，回调发送 Action：
 
 ```kotlin
-val currentTheme by viewModel.currentTheme.collectAsState()
+val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 // ...
-onTabSelected = { viewModel.selectTab(it); viewModel.closeSidebar() }
+onTabSelected = { viewModel.trySendAction(GreetingAction.TabSelected(it)) }
 ```
+
+一次性事件用 `EventsEffect(viewModel) { ... }` 消费（生命周期感知，防重复导航类问题）。
 
 纯瞬态动画状态（按压缩放、入场触发、复制成功标记、渲染延迟模拟值）仍留在 Composable 本地 `remember`，符合 MVVM"UI 瞬态不下沉"原则。
 
@@ -309,11 +311,11 @@ val sidebarOffset by animateDpAsState(if (isSidebarOpen) 0.dp else -sidebarWidth
 ### 10.1 区块构成
 
 1. **遥测头**：`DESIGN TOKENS` 徽标 + 模拟延迟药丸（`renderLatencyMs`，3~5ms 随机，主题变化时刷新）+ "Inspect CSS" 快捷入口。
-2. **预设快切条**：6 家族药丸（明暗随当前主题），点击 → `viewModel.selectTheme(targetVariant)`（持久化）。
-3. **英雄卡片**：6 组策展语录（`GreetingRepository.heroQuotes`，轻斜体 + 粗体双段）循环，点按弹簧缩放 0.985f（`Spring.DampingRatioMediumBouncy`），tap → `viewModel.nextGreeting()`；自定义问候激活时优先显示 `customGreeting`。
+2. **预设快切条**：6 家族药丸（明暗随当前主题），点击 → `GreetingAction.ThemeSelected(targetVariant)`（持久化）。
+3. **英雄卡片**：6 组策展语录（`GreetingRepository.heroQuotes`，轻斜体 + 粗体双段）循环，点按弹簧缩放 0.985f（`Spring.DampingRatioMediumBouncy`），tap → `GreetingAction.NextGreetingClicked`；自定义问候激活时优先显示 `customGreeting`。
 4. **交错入场动画**：卡片/眉题/双段文字/分割线/说明文字按 60/120/180/300/420/480ms 延迟级联，650~750ms `CubicBezierEasing(0.16,1,0.3,1)`。
-5. **自定义问候编辑器**：`AnimatedVisibility` 展开双 `BasicTextField`（part1 衬线斜体 / part2 无衬线粗体），输入即 `viewModel.updateCustomGreeting()` 实时上屏。
-6. **排版引擎选择器**：Serif / Sans / Mono 三段，→ `viewModel.selectTypography()`（持久化）。
+5. **自定义问候编辑器**：`AnimatedVisibility` 展开双 `BasicTextField`（part1 衬线斜体 / part2 无衬线粗体），输入即 `GreetingAction.CustomGreetingChanged` 实时上屏。
+6. **排版引擎选择器**：Serif / Sans / Mono 三段，→ `GreetingAction.TypographySelected`（持久化）。
 7. **CSS Variables 速览卡**：7 行令牌（`--bg/--text/--surface/--accent/--muted/--border/--radius`）+ Copy CSS 按钮（1.8s 复制成功态）。
 
 ---
@@ -342,7 +344,7 @@ NONE（正常标签）→ MENU（设置菜单列表）→ PAGE（外观设置页
 ### 11.4 CSS 变量审查器（CssVariableInspectorSheet）
 全局 `ModalBottomSheet`，双标签：
 - **CSS Code**：完整 `:root` 导出 + 复制按钮（1.8s 成功态）。
-- **Tokens**：9 个预设色样实时覆盖 `--primary`（`onCustomPrimarySelected` → `viewModel.overridePrimary()`，瞬态不持久化）。
+- **Tokens**：9 个预设色样实时覆盖 `--primary`（`onCustomPrimarySelected` → `GreetingAction.PrimaryColorOverridden`，瞬态不持久化）。
 
 ---
 

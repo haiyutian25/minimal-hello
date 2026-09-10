@@ -7,20 +7,23 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.ui.theme.LocalContentFontFamily
 import com.example.core.ui.theme.MinimalTheme
+import com.example.feature.greeting.impl.GreetingAction
 import com.example.feature.greeting.impl.GreetingNavHost
 import com.example.feature.greeting.impl.GreetingViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * App shell: single Activity, theme application and navigation assembly.
- * All feature state lives in [GreetingViewModel] (MVVM).
+ * All feature state lives in [GreetingViewModel] (MVVM + unidirectional data
+ * flow): the UI collects [GreetingViewModel.stateFlow] and reports every
+ * change back through [GreetingViewModel.trySendAction].
  */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -29,15 +32,13 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContent {
             val viewModel: GreetingViewModel = hiltViewModel()
-            val currentTheme by viewModel.currentTheme.collectAsState()
-            val activeContentFont by viewModel.activeContentFont.collectAsState()
-            val fontScale by viewModel.fontScale.collectAsState()
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
             // Keep the view model's system dark-mode state in sync so the
             // SYSTEM color mode follows the OS setting live.
             val isSystemDark = isSystemInDarkTheme()
             LaunchedEffect(isSystemDark) {
-                viewModel.setSystemDarkMode(isSystemDark)
+                viewModel.trySendAction(GreetingAction.SystemDarkModeChanged(isSystemDark))
             }
 
             // Broadcast the resolved content font (system engine or an installed
@@ -45,10 +46,10 @@ class MainActivity : AppCompatActivity() {
             // every .sp text size app-wide.
             val baseDensity = LocalDensity.current
             CompositionLocalProvider(
-                LocalContentFontFamily provides activeContentFont,
-                LocalDensity provides Density(density = baseDensity.density, fontScale = fontScale)
+                LocalContentFontFamily provides state.activeContentFont,
+                LocalDensity provides Density(density = baseDensity.density, fontScale = state.fontScale)
             ) {
-                MinimalTheme(cssVars = currentTheme) {
+                MinimalTheme(cssVars = state.theme) {
                     GreetingNavHost(viewModel = viewModel)
                 }
             }

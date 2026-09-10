@@ -52,7 +52,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +77,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ProductionPalettes
@@ -88,6 +88,7 @@ import com.example.feature.greeting.impl.components.SegmentedControl
 import com.example.feature.greeting.impl.components.SegmentedOption
 import com.example.core.ui.theme.toHex
 import com.example.core.ui.util.copyToClipboard
+import com.example.feature.greeting.impl.GreetingAction
 import com.example.feature.greeting.impl.GreetingViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -113,10 +114,12 @@ fun CanvasScreen(
 
     val cssCopiedToast = stringResource(R.string.canvas_css_copied_toast)
 
-    val currentTheme by viewModel.currentTheme.collectAsState()
-    val typographyChoice by viewModel.typographyChoice.collectAsState()
-    val greetingIndex by viewModel.greetingIndex.collectAsState()
-    val customGreeting by viewModel.customGreeting.collectAsState()
+    // Single source of truth: the feature's immutable UI state (UDF).
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val currentTheme = state.theme
+    val typographyChoice = state.typographyChoice
+    val greetingIndex = state.greetingIndex
+    val customGreeting = state.customGreeting
 
     val selectedTypography = when (typographyChoice) {
         AppTypographyChoice.EDITORIAL -> TypographyStyle.EDITORIAL
@@ -195,7 +198,7 @@ fun CanvasScreen(
 
             // Quick CSS Inspector pill trigger
             Button(
-                onClick = { viewModel.showInspector() },
+                onClick = { viewModel.trySendAction(GreetingAction.InspectorShown) },
                 shape = RoundedCornerShape(currentTheme.radiusSm),
                 testTag = "open_inspector_quick_pill"
             ) {
@@ -253,7 +256,7 @@ fun CanvasScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.selectTheme(targetVariant) },
+                    onClick = { viewModel.trySendAction(GreetingAction.ThemeSelected(targetVariant)) },
                     shape = RoundedCornerShape(currentTheme.radiusLg),
                     testTag = "preset_pill_$name"
                 ) {
@@ -349,8 +352,8 @@ fun CanvasScreen(
             label = "caption_entrance_offset"
         )
 
-        val heroQuotes = viewModel.heroQuotes
-        val heroCaptions = viewModel.heroCaptions
+        val heroQuotes = state.heroQuotes
+        val heroCaptions = state.heroCaptions
         val activeHeading = if (customGreeting.isActive) {
             Pair(customGreeting.part1, customGreeting.part2)
         } else {
@@ -389,7 +392,7 @@ fun CanvasScreen(
                             isGreetingPressed = false
                         },
                         onTap = {
-                            viewModel.nextGreeting()
+                            viewModel.trySendAction(GreetingAction.NextGreetingClicked)
                         }
                     )
                 }
@@ -600,7 +603,9 @@ fun CanvasScreen(
                         value = customPart1,
                         onValueChange = {
                             customPart1 = it
-                            viewModel.updateCustomGreeting(customPart1, customPart2)
+                            viewModel.trySendAction(
+                                GreetingAction.CustomGreetingChanged(customPart1, customPart2)
+                            )
                         },
                         textStyle = TextStyle(
                             color = currentTheme.foreground,
@@ -622,7 +627,9 @@ fun CanvasScreen(
                         value = customPart2,
                         onValueChange = {
                             customPart2 = it
-                            viewModel.updateCustomGreeting(customPart1, customPart2)
+                            viewModel.trySendAction(
+                                GreetingAction.CustomGreetingChanged(customPart1, customPart2)
+                            )
                         },
                         textStyle = TextStyle(
                             color = currentTheme.foreground,
@@ -658,12 +665,14 @@ fun CanvasScreen(
             selectedId = selectedTypography.name,
             onSelect = { id ->
                 val style = TypographyStyle.valueOf(id)
-                viewModel.selectTypography(
-                    when (style) {
-                        TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
-                        TypographyStyle.SANS -> AppTypographyChoice.SANS
-                        TypographyStyle.MONO -> AppTypographyChoice.MONO
-                    }
+                viewModel.trySendAction(
+                    GreetingAction.TypographySelected(
+                        when (style) {
+                            TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
+                            TypographyStyle.SANS -> AppTypographyChoice.SANS
+                            TypographyStyle.MONO -> AppTypographyChoice.MONO
+                        }
+                    )
                 )
             },
             currentTheme = currentTheme

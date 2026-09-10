@@ -1,9 +1,9 @@
 package com.example.feature.greeting.impl
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.example.core.navigation.rememberAppNavigator
@@ -23,7 +23,7 @@ fun GreetingNavHost(
     modifier: Modifier = Modifier,
 ) {
     val navigator = rememberAppNavigator(GreetingNavKey.Splash)
-    val currentTheme by viewModel.currentTheme.collectAsState()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     NavDisplay(
         backStack = navigator.navigationState,
@@ -31,7 +31,7 @@ fun GreetingNavHost(
         entryProvider = entryProvider {
             entry<GreetingNavKey.Splash> {
                 SplashScreen(
-                    currentTheme = currentTheme,
+                    currentTheme = state.theme,
                     onFinish = { navigator.replace(GreetingNavKey.Main) }
                 )
             }

@@ -11,17 +11,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.core.ui.base.util.EventsEffect
 import com.example.feature.greeting.impl.components.CssVariableInspectorSheet
 import com.example.feature.greeting.impl.components.NavigationTab
 import com.example.feature.greeting.impl.components.ProductionBottomNavBar
@@ -39,71 +36,58 @@ import com.example.feature.greeting.impl.screens.TypeStudioScreen
 
 /**
  * Post-splash experience: push-canvas sidebar + 4-tab scaffold + global
- * CSS inspector sheet. All state is observed from [GreetingViewModel] (MVVM).
+ * CSS inspector sheet. Renders the single [GreetingState] exposed by
+ * [GreetingViewModel.stateFlow] and sends every user intent back as a
+ * [GreetingAction] (unidirectional data flow).
  */
 @Composable
 fun MainScreen(
     viewModel: GreetingViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val currentTheme by viewModel.currentTheme.collectAsState()
-    val currentTab by viewModel.currentTab.collectAsState()
-    val isSidebarOpen by viewModel.isSidebarOpen.collectAsState()
-    val isInspectorVisible by viewModel.isInspectorVisible.collectAsState()
-    val typographyChoice by viewModel.typographyChoice.collectAsState()
-    val fontScale by viewModel.fontScale.collectAsState()
-    val colorMode by viewModel.colorMode.collectAsState()
-    val settingsLevel by viewModel.settingsLevel.collectAsState()
-    val installedFonts by viewModel.installedFonts.collectAsState()
-    val activeCustomFontId by viewModel.activeCustomFontId.collectAsState()
-    val downloadProgress by viewModel.downloadProgress.collectAsState()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     // Consume one-time UI events (toasts) exactly once, lifecycle-aware.
     val eventContext = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            viewModel.uiEvents.collect { event ->
-                when (event) {
-                    is UiEvent.ShowToast ->
-                        Toast.makeText(eventContext, event.messageRes, Toast.LENGTH_SHORT).show()
-                }
-            }
+    EventsEffect(viewModel = viewModel) { event ->
+        when (event) {
+            is GreetingEvent.ShowToast ->
+                Toast.makeText(eventContext, event.messageRes, Toast.LENGTH_SHORT).show()
         }
     }
 
     val animatedBg by animateColorAsState(
-        targetValue = currentTheme.background,
+        targetValue = state.theme.background,
         animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
         label = "bg_color"
     )
 
     // Settings levels step back first; the sidebar (registered later, thus
     // dispatched first when both are active) still takes priority when open.
-    BackHandler(enabled = settingsLevel != SettingsLevel.NONE) {
-        viewModel.backSettings()
+    BackHandler(enabled = state.settingsLevel != SettingsLevel.NONE) {
+        viewModel.trySendAction(GreetingAction.SettingsBackPressed)
     }
-    BackHandler(enabled = isSidebarOpen) {
-        viewModel.closeSidebar()
+    BackHandler(enabled = state.isSidebarOpen) {
+        viewModel.trySendAction(GreetingAction.SidebarClosed)
     }
 
     Box(modifier = modifier.fillMaxSize()) {
         // Push-canvas sidebar drawer; the main scaffold is its pushed content.
         SidebarDrawer(
-            isOpen = isSidebarOpen,
-            currentTheme = currentTheme,
-            onOpen = viewModel::openSidebar,
-            onOpenSettings = { viewModel.openSettingsMenu() },
-            onClose = viewModel::closeSidebar
+            isOpen = state.isSidebarOpen,
+            currentTheme = state.theme,
+            onOpen = { viewModel.trySendAction(GreetingAction.SidebarOpened) },
+            onOpenSettings = { viewModel.trySendAction(GreetingAction.SettingsMenuOpened) },
+            onClose = { viewModel.trySendAction(GreetingAction.SidebarClosed) }
         ) {
             Scaffold(
                 containerColor = animatedBg,
-                contentColor = currentTheme.foreground,
+                contentColor = state.theme.foreground,
                 topBar = {
                     ProductionTopNavBar(
-                        currentTheme = currentTheme,
-                        onOpenSidebar = viewModel::toggleSidebar,
-                        pageTitle = when (settingsLevel) {
+                        currentTheme = state.theme,
+                        onOpenSidebar = { viewModel.trySendAction(GreetingAction.SidebarToggled) },
+                        pageTitle = when (state.settingsLevel) {
                             SettingsLevel.MENU -> stringResource(R.string.settings_page_title)
                             SettingsLevel.PAGE -> stringResource(R.string.settings_menu_appearance_title)
                             SettingsLevel.FONT -> stringResource(R.string.settings_menu_font_title)
@@ -111,52 +95,74 @@ fun MainScreen(
                             SettingsLevel.LANGUAGE -> stringResource(R.string.language_title)
                             SettingsLevel.NONE -> null
                         },
-                        onBack = { viewModel.backSettings() }
+                        onBack = { viewModel.trySendAction(GreetingAction.SettingsBackPressed) }
                     )
                 },
                 modifier = Modifier.fillMaxSize()
             ) { innerPadding ->
                 // Settings flow renders inside the Scaffold content area so the
                 // global top nav bar (Scaffold topBar) persists on every level.
-                when (settingsLevel) {
+                when (state.settingsLevel) {
                     SettingsLevel.MENU -> SettingsMenuScreen(
-                        currentTheme = currentTheme,
-                        onOpenAppearance = viewModel::openAppearanceSettings,
-                        onOpenFont = viewModel::openFontSettings,
-                        onOpenLanguage = viewModel::openLanguageSettings,
+                        currentTheme = state.theme,
+                        onOpenAppearance = {
+                            viewModel.trySendAction(GreetingAction.AppearanceSettingsOpened)
+                        },
+                        onOpenFont = {
+                            viewModel.trySendAction(GreetingAction.FontSettingsOpened)
+                        },
+                        onOpenLanguage = {
+                            viewModel.trySendAction(GreetingAction.LanguageSettingsOpened)
+                        },
                         modifier = Modifier.padding(innerPadding)
                     )
                     SettingsLevel.LANGUAGE -> LanguageScreen(
-                        currentTheme = currentTheme,
+                        currentTheme = state.theme,
                         modifier = Modifier.padding(innerPadding)
                     )
                     SettingsLevel.PAGE -> SettingsScreen(
-                        currentTheme = currentTheme,
-                        onThemeChange = viewModel::selectTheme,
-                        colorMode = colorMode,
-                        onColorModeChange = viewModel::setColorMode,
+                        currentTheme = state.theme,
+                        onThemeChange = {
+                            viewModel.trySendAction(GreetingAction.ThemeSelected(it))
+                        },
+                        colorMode = state.colorMode,
+                        onColorModeChange = {
+                            viewModel.trySendAction(GreetingAction.ColorModeChanged(it))
+                        },
                         modifier = Modifier.padding(innerPadding)
                     )
                     SettingsLevel.FONT -> FontScreen(
-                        currentTheme = currentTheme,
-                        selectedTypography = typographyChoice,
-                        onTypographyChange = viewModel::selectTypography,
-                        fontScale = fontScale,
-                        onOpenFontSize = viewModel::openFontSizeSettings,
-                        installedFonts = installedFonts,
-                        activeCustomFontId = activeCustomFontId,
-                        downloadProgress = downloadProgress,
+                        currentTheme = state.theme,
+                        selectedTypography = state.typographyChoice,
+                        onTypographyChange = {
+                            viewModel.trySendAction(GreetingAction.TypographySelected(it))
+                        },
+                        fontScale = state.fontScale,
+                        onOpenFontSize = {
+                            viewModel.trySendAction(GreetingAction.FontSizeSettingsOpened)
+                        },
+                        installedFonts = state.installedFonts,
+                        activeCustomFontId = state.activeCustomFontId,
+                        downloadProgress = state.downloadProgress,
                         fontFamilyFor = viewModel::customFontFamily,
-                        onSelectCustomFont = viewModel::selectCustomFont,
-                        onDeleteCustomFont = viewModel::deleteFont,
-                        onDownloadFont = viewModel::downloadFont,
-                        onImportFont = viewModel::importFont,
+                        onSelectCustomFont = {
+                            viewModel.trySendAction(GreetingAction.CustomFontSelected(it))
+                        },
+                        onDeleteCustomFont = {
+                            viewModel.trySendAction(GreetingAction.FontDeleteClicked(it))
+                        },
+                        onDownloadFont = {
+                            viewModel.trySendAction(GreetingAction.FontDownloadClicked(it))
+                        },
+                        onImportFont = { uri, name ->
+                            viewModel.trySendAction(GreetingAction.FontImportRequested(uri, name))
+                        },
                         modifier = Modifier.padding(innerPadding)
                     )
                     SettingsLevel.FONT_SIZE -> FontSizeScreen(
-                        currentTheme = currentTheme,
-                        fontScale = fontScale,
-                        onSave = viewModel::setFontScale,
+                        currentTheme = state.theme,
+                        fontScale = state.fontScale,
+                        onSave = { viewModel.trySendAction(GreetingAction.FontScaleSaved(it)) },
                         modifier = Modifier.padding(innerPadding)
                     )
                     // Bottom navigation hosts the pages itself; swipe-to-switch
@@ -164,14 +170,14 @@ fun MainScreen(
                     // keep closing it, and the left edge zone stays reserved
                     // for the drawer's edge swipe.
                     SettingsLevel.NONE -> ProductionBottomNavBar(
-                        currentTab = currentTab,
+                        currentTab = state.currentTab,
                         onTabSelected = {
-                            viewModel.selectTab(it)
-                            viewModel.exitSettings()
+                            viewModel.trySendAction(GreetingAction.TabSelected(it))
+                            viewModel.trySendAction(GreetingAction.SettingsExited)
                         },
-                        currentTheme = currentTheme,
+                        currentTheme = state.theme,
                         swipeable = true,
-                        swipeEnabled = !isSidebarOpen,
+                        swipeEnabled = !state.isSidebarOpen,
                         excludedStartZone = SidebarEdgeZone,
                         // Flush with the screen bottom: the bar must stay exactly
                         // its 66dp content height, so drop the Scaffold's
@@ -188,13 +194,17 @@ fun MainScreen(
                         when (tab) {
                             NavigationTab.CANVAS -> CanvasScreen(viewModel = viewModel)
                             NavigationTab.TYPOGRAPHY -> TypeStudioScreen(
-                                currentTheme = currentTheme,
-                                selectedTypography = typographyChoice,
-                                onTypographyChange = viewModel::selectTypography
+                                currentTheme = state.theme,
+                                selectedTypography = state.typographyChoice,
+                                onTypographyChange = {
+                                    viewModel.trySendAction(GreetingAction.TypographySelected(it))
+                                }
                             )
                             NavigationTab.TOKENS -> TokensScreen(
-                                currentTheme = currentTheme,
-                                onOpenInspector = viewModel::showInspector
+                                currentTheme = state.theme,
+                                onOpenInspector = {
+                                    viewModel.trySendAction(GreetingAction.InspectorShown)
+                                }
                             )
                             // 4th tab is intentionally blank (settings moved to the sidebar flow)
                             NavigationTab.SETTINGS -> Box(modifier = Modifier.fillMaxSize())
@@ -205,11 +215,13 @@ fun MainScreen(
         }
 
         // CSS Variables Inspector Bottom Sheet (Accessible from everywhere)
-        if (isInspectorVisible) {
+        if (state.isInspectorVisible) {
             CssVariableInspectorSheet(
-                currentTheme = currentTheme,
-                onDismiss = viewModel::hideInspector,
-                onCustomPrimarySelected = viewModel::overridePrimary
+                currentTheme = state.theme,
+                onDismiss = { viewModel.trySendAction(GreetingAction.InspectorDismissed) },
+                onCustomPrimarySelected = {
+                    viewModel.trySendAction(GreetingAction.PrimaryColorOverridden(it))
+                }
             )
         }
     }
