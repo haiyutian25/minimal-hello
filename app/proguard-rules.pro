@@ -19,3 +19,69 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# ---------------------------------------------------------------------------
+# kotlinx.serialization (HeroQuoteDto, Navigation 3 GreetingNavKey)
+# Official recommended rules: https://github.com/Kotlin/kotlinx.serialization
+# ---------------------------------------------------------------------------
+
+# Keep `Companion` object fields of serializable classes.
+-if @kotlinx.serialization.Serializable class **
+-keepclassmembers class <1> {
+    static <1>$Companion Companion;
+}
+
+# Keep `serializer()` on companion objects (both default and named) of serializable classes.
+-if @kotlinx.serialization.Serializable class ** {
+    static **$* *;
+}
+-keepclassmembers class <2>$<3> {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep `INSTANCE.serializer()` of serializable objects.
+-if @kotlinx.serialization.Serializable class ** {
+    public static ** INSTANCE;
+}
+-keepclassmembers class <1> {
+    public static <1> INSTANCE;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# @Serializable and @Polymorphic are used at runtime for polymorphic serialization.
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault
+
+# Navigation 3 serializes nav keys by their runtime serial names; keep them
+# stable so the back stack survives process death and app updates.
+-keep @kotlinx.serialization.Serializable class * { *; }
+
+-dontnote kotlinx.serialization.**
+
+# ---------------------------------------------------------------------------
+# OkHttp optional TLS platforms (BouncyCastle / Conscrypt / OpenJSSE) are
+# loaded reflectively only when present on the device; safe to ignore.
+# ---------------------------------------------------------------------------
+-dontwarn org.bouncycastle.jsse.BCSSLParameters
+-dontwarn org.bouncycastle.jsse.BCSSLSocket
+-dontwarn org.bouncycastle.jsse.provider.BouncyCastleJsseProvider
+-dontwarn org.conscrypt.Conscrypt$Version
+-dontwarn org.conscrypt.Conscrypt
+-dontwarn org.conscrypt.ConscryptHostnameVerifier
+-dontwarn org.openjsse.javax.net.ssl.SSLParameters
+-dontwarn org.openjsse.javax.net.ssl.SSLSocket
+-dontwarn org.openjsse.net.ssl.OpenJSSE
+
+# ---------------------------------------------------------------------------
+# Retrofit service interfaces are implemented by runtime dynamic proxies that
+# R8 cannot see; without a keep rule the "unimplemented" interface gets
+# merged/removed and the Dagger factory's checkcast throws ClassCastException.
+# ---------------------------------------------------------------------------
+# NOTE: no allowshrinking here — with it, R8 full mode still removes the
+# interface (it sees no subtypes, since the proxy is built at runtime).
+-keep,allowobfuscation interface com.example.core.network.GreetingApi { *; }
+
+# Retain HTTP method/parameter annotations (@GET/@POST/@Query...) on all
+# service interfaces; Retrofit reads them reflectively at runtime.
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
+    @retrofit2.http.** <methods>;
+}
