@@ -9,7 +9,7 @@ minimal-hello/
 ├── app/                        # App shell: single Activity + navigation assembly + theme
 ├── core/
 │   ├── data/                   # Data layer (Hilt): GreetingRepository, UserPreferencesRepository
-│   ├── database/               # Room: persists theme & typography preferences
+│   ├── database/               # Room: reserved for structured local data (no active DAO yet)
 │   ├── navigation/             # Navigation 3 infrastructure (AppNavigator / NavigationState)
 │   ├── network/                # Retrofit / OkHttp (Hilt-provided, placeholder service)
 │   └── ui/                     # Design tokens, MinimalTheme, shared utilities
@@ -20,7 +20,7 @@ minimal-hello/
 └── gradle/libs.versions.toml   # Version catalog
 ```
 
-- **MVVM**: `GreetingViewModel` owns all feature state (theme, typography, tab, sidebar, inspector, greeting content) as `StateFlow`s; user preferences are persisted through Room via the data layer.
+- **MVVM**: `GreetingViewModel` owns all feature state (theme, typography, tab, sidebar, inspector, greeting content) as `StateFlow`s; user preferences — including the navigation chrome state — are persisted through Preferences DataStore via the data layer.
 - **Navigation 3**: destinations are declared as a serializable `NavKey` contract in `feature:greeting:api`; the app shell assembles them through `NavDisplay` + `entryProvider`.
 - **DI**: Hilt 2.x wires the database, network, data and ViewModel layers.
 
@@ -31,7 +31,7 @@ minimal-hello/
 | AGP | 9.1.1 (compileSdk 37) |
 | Kotlin | 2.2.10 |
 | Compose BOM | 2026.08.00 (Material 3) |
-| Navigation 3 | 1.1.4 |
+| Navigation 3 | 1.1.7 |
 | Hilt | 2.60.1 |
 | Room | 2.7.0 |
 | minSdk / targetSdk | 24 / 36 |

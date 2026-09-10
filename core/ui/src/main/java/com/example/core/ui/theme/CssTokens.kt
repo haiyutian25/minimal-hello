@@ -400,7 +400,7 @@ object CssTheme {
  * other palettes.
  */
 val CssVariables.isBraun: Boolean
-    get() = themeId.startsWith("dieter-rams")
+    get() = ThemeResolver.familyOf(themeId) == "dieter-rams"
 
 /**
  * Central resolution from a persisted themeId back to a concrete

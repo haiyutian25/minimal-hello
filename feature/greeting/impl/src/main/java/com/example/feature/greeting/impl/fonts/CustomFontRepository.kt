@@ -33,6 +33,16 @@ class CustomFontRepository @Inject constructor(
 
     private val fontFamilyCache = ConcurrentHashMap<String, FontFamily>()
 
+    /**
+     * In-memory snapshot of the on-disk font file names, refreshed by every
+     * [installedFonts] scan and kept current by install/delete mutations.
+     * [fontFamilyFor] is on the hot read path (called from the ViewModel's
+     * updateState and from LazyList item compositions, both on the main
+     * thread), so membership must never be answered with filesystem I/O.
+     */
+    @Volatile
+    private var installedIds: Set<String> = emptySet()
+
     private val _downloadProgress = MutableStateFlow<Map<String, Float>>(emptyMap())
     /** fontId -> download progress in 0f..1f (present only while downloading). */
     val downloadProgress: StateFlow<Map<String, Float>> = _downloadProgress.asStateFlow()
@@ -43,7 +53,7 @@ class CustomFontRepository @Inject constructor(
 
     /** Scans the fonts directory and returns all installed fonts. */
     suspend fun installedFonts(): List<InstalledFont> = withContext(dispatcherManager.io) {
-        fontsDir.listFiles()
+        val fonts = fontsDir.listFiles()
             .orEmpty()
             .filter { it.isFile && it.extension.lowercase() in FONT_EXTENSIONS }
             .map { file ->
@@ -58,16 +68,24 @@ class CustomFontRepository @Inject constructor(
                 )
             }
             .sortedBy { it.displayName.lowercase() }
+        installedIds = fonts.map { it.id }.toSet()
+        fonts
     }
 
     fun isInstalled(fontId: String): Boolean = File(fontsDir, fontId).exists()
 
-    /** Resolves an installed font ID to a cached [FontFamily], or null if missing. */
+    /**
+     * Resolves an installed font ID to a cached [FontFamily], or null if missing.
+     * Membership is answered from the in-memory [installedIds] snapshot — no
+     * disk I/O on the caller thread. Until the first scan lands after process
+     * start the snapshot is empty; the [installedVersion] collection in the
+     * ViewModel triggers that scan and re-derives the font, so the choice
+     * self-heals within one frame sequence.
+     */
     fun fontFamilyFor(fontId: String): FontFamily? {
         if (fontId.isEmpty()) return null
-        val file = File(fontsDir, fontId)
-        if (!file.exists()) return null
-        return fontFamilyCache.getOrPut(fontId) { FontFamily(Font(file = file)) }
+        if (fontId !in installedIds) return null
+        return fontFamilyCache.getOrPut(fontId) { FontFamily(Font(file = File(fontsDir, fontId))) }
     }
 
     /** Downloads a preset font to disk, streaming progress to [downloadProgress]. */
@@ -104,6 +122,7 @@ class CustomFontRepository @Inject constructor(
                 partial.copyTo(target, overwrite = true)
                 partial.delete()
             }
+            installedIds = installedIds + preset.fileName
             bumpInstalled()
             // Clear the progress entry so a preset re-listed in the library (e.g.
             // after deletion) shows the download button, not a stale 100% bar.
@@ -139,6 +158,7 @@ class CustomFontRepository @Inject constructor(
                 target.delete()
                 return@withContext null
             }
+            installedIds = installedIds + target.name
             bumpInstalled()
             target.name
         } catch (e: Exception) {
@@ -150,6 +170,7 @@ class CustomFontRepository @Inject constructor(
     suspend fun deleteFont(fontId: String) = withContext(dispatcherManager.io) {
         File(fontsDir, fontId).delete()
         fontFamilyCache.remove(fontId)
+        installedIds = installedIds - fontId
         bumpInstalled()
     }
 

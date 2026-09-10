@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.sp
  */
 val LocalContentFontFamily = compositionLocalOf<FontFamily> { FontFamily.SansSerif }
 
-val Typography = Typography(
+val AppTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Light,

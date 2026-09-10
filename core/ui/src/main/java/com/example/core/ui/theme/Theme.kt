@@ -54,7 +54,7 @@ fun MinimalTheme(
     CompositionLocalProvider(LocalCssVariables provides cssVars) {
         MaterialTheme(
             colorScheme = m3ColorScheme,
-            typography = Typography
+            typography = AppTypography
         ) {
             // The default text style follows the user's chosen content font, so
             // any Text that does not pin its own fontFamily inherits it. Text
