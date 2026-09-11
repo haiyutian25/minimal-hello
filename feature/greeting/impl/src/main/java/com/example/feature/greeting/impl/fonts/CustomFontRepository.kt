@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -88,7 +89,12 @@ class CustomFontRepository @Inject constructor(
         return fontFamilyCache.getOrPut(fontId) { FontFamily(Font(file = File(fontsDir, fontId))) }
     }
 
-    /** Downloads a preset font to disk, streaming progress to [downloadProgress]. */
+    /**
+     * Downloads a preset font to disk, streaming progress to [downloadProgress].
+     * The transferred bytes are SHA-256 verified against [PresetFont.sha256];
+     * a mismatching file (tampered, truncated or a stale server copy) is
+     * rejected and never installed.
+     */
     suspend fun downloadPreset(preset: PresetFont): Boolean = withContext(dispatcherManager.io) {
         if (isInstalled(preset.fileName)) return@withContext true
         val target = File(fontsDir, preset.fileName)
@@ -103,6 +109,7 @@ class CustomFontRepository @Inject constructor(
             connection.connect()
             if (connection.responseCode !in 200..299) return@withContext fail(partial, preset.fileName)
             val total = if (connection.contentLengthLong > 0) connection.contentLengthLong else preset.sizeBytes
+            val digest = MessageDigest.getInstance("SHA-256")
             connection.inputStream.use { input ->
                 partial.outputStream().use { output ->
                     val buffer = ByteArray(BUFFER_SIZE)
@@ -110,6 +117,7 @@ class CustomFontRepository @Inject constructor(
                     var downloaded = 0L
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         output.write(buffer, 0, bytesRead)
+                        digest.update(buffer, 0, bytesRead)
                         downloaded += bytesRead
                         if (total > 0) {
                             setProgress(preset.fileName, (downloaded.toFloat() / total).coerceIn(0f, 0.99f))
@@ -117,6 +125,10 @@ class CustomFontRepository @Inject constructor(
                     }
                     output.flush()
                 }
+            }
+            val actualDigest = digest.digest().toHexString()
+            if (!actualDigest.equals(preset.sha256, ignoreCase = true)) {
+                return@withContext fail(partial, preset.fileName)
             }
             if (!partial.renameTo(target)) {
                 partial.copyTo(target, overwrite = true)
