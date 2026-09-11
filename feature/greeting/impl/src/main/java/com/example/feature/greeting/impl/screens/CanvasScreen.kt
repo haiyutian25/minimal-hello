@@ -78,19 +78,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.core.data.repository.HeroQuote
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ThemeResolver
 import com.example.core.ui.theme.isBraun
+import com.example.feature.greeting.impl.CustomGreetingState
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.SegmentedControl
 import com.example.feature.greeting.impl.components.SegmentedOption
 import com.example.core.ui.theme.toHex
 import com.example.core.ui.util.copyToClipboard
-import com.example.feature.greeting.impl.GreetingAction
-import com.example.feature.greeting.impl.GreetingViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -103,10 +102,25 @@ private enum class TypographyStyle(@StringRes val labelRes: Int, val font: FontF
 /**
  * Craft canvas tab: telemetry header, preset switcher, hero greeting card,
  * custom greeting editor, typography engine selector and live CSS tokens.
+ *
+ * Stateless like its sibling tabs: every input arrives as a parameter and every
+ * user intent leaves via a callback (the host wires them to the ViewModel's
+ * action channel). The custom greeting editor reads and writes
+ * [customGreeting] directly, so the fields can never drift from the state.
  */
 @Composable
 fun CanvasScreen(
-    viewModel: GreetingViewModel,
+    currentTheme: CssVariables,
+    typographyChoice: AppTypographyChoice,
+    greetingIndex: Int,
+    customGreeting: CustomGreetingState,
+    heroQuotes: List<HeroQuote>,
+    heroCaptions: List<Int>,
+    onNextGreeting: () -> Unit,
+    onCustomGreetingChanged: (String, String) -> Unit,
+    onThemeSelected: (CssVariables) -> Unit,
+    onTypographySelected: (AppTypographyChoice) -> Unit,
+    onOpenInspector: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -115,13 +129,6 @@ fun CanvasScreen(
 
     val cssCopiedToast = stringResource(R.string.canvas_css_copied_toast)
 
-    // Single source of truth: the feature's immutable UI state (UDF).
-    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val currentTheme = state.theme
-    val typographyChoice = state.typographyChoice
-    val greetingIndex = state.greetingIndex
-    val customGreeting = state.customGreeting
-
     val selectedTypography = when (typographyChoice) {
         AppTypographyChoice.EDITORIAL -> TypographyStyle.EDITORIAL
         AppTypographyChoice.SANS -> TypographyStyle.SANS
@@ -129,8 +136,6 @@ fun CanvasScreen(
     }
 
     var showCustomGreetingInput by remember { mutableStateOf(false) }
-    var customPart1 by remember { mutableStateOf(customGreeting.part1) }
-    var customPart2 by remember { mutableStateOf(customGreeting.part2) }
     var isGreetingPressed by remember { mutableStateOf(false) }
     var isCopied by remember { mutableStateOf(false) }
 
@@ -194,7 +199,7 @@ fun CanvasScreen(
 
             // Quick CSS Inspector pill trigger
             Button(
-                onClick = { viewModel.trySendAction(GreetingAction.InspectorShown) },
+                onClick = { onOpenInspector() },
                 shape = RoundedCornerShape(currentTheme.radiusSm),
                 testTag = "open_inspector_quick_pill"
             ) {
@@ -245,7 +250,7 @@ fun CanvasScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.trySendAction(GreetingAction.ThemeSelected(targetVariant)) },
+                    onClick = { onThemeSelected(targetVariant) },
                     shape = RoundedCornerShape(currentTheme.radiusLg),
                     testTag = "preset_pill_${family.key}"
                 ) {
@@ -341,8 +346,6 @@ fun CanvasScreen(
             label = "caption_entrance_offset"
         )
 
-        val heroQuotes = state.heroQuotes
-        val heroCaptions = state.heroCaptions
         val activeHeading = if (customGreeting.isActive) {
             Pair(customGreeting.part1, customGreeting.part2)
         } else {
@@ -381,7 +384,7 @@ fun CanvasScreen(
                             isGreetingPressed = false
                         },
                         onTap = {
-                            viewModel.trySendAction(GreetingAction.NextGreetingClicked)
+                            onNextGreeting()
                         }
                     )
                 }
@@ -587,15 +590,12 @@ fun CanvasScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Part 1 input (Italic serif / prefix)
+                    // Part 1 input (Italic serif / prefix). Reads and writes the
+                    // ViewModel's customGreeting directly — no local copy that
+                    // could drift from the state.
                     BasicTextField(
-                        value = customPart1,
-                        onValueChange = {
-                            customPart1 = it
-                            viewModel.trySendAction(
-                                GreetingAction.CustomGreetingChanged(customPart1, customPart2)
-                            )
-                        },
+                        value = customGreeting.part1,
+                        onValueChange = { onCustomGreetingChanged(it, customGreeting.part2) },
                         textStyle = TextStyle(
                             color = currentTheme.foreground,
                             fontSize = 13.sp,
@@ -613,13 +613,8 @@ fun CanvasScreen(
 
                     // Part 2 input (Bold sans / suffix)
                     BasicTextField(
-                        value = customPart2,
-                        onValueChange = {
-                            customPart2 = it
-                            viewModel.trySendAction(
-                                GreetingAction.CustomGreetingChanged(customPart1, customPart2)
-                            )
-                        },
+                        value = customGreeting.part2,
+                        onValueChange = { onCustomGreetingChanged(customGreeting.part1, it) },
                         textStyle = TextStyle(
                             color = currentTheme.foreground,
                             fontSize = 13.sp,
@@ -654,14 +649,12 @@ fun CanvasScreen(
             selectedId = selectedTypography.name,
             onSelect = { id ->
                 val style = TypographyStyle.valueOf(id)
-                viewModel.trySendAction(
-                    GreetingAction.TypographySelected(
-                        when (style) {
-                            TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
-                            TypographyStyle.SANS -> AppTypographyChoice.SANS
-                            TypographyStyle.MONO -> AppTypographyChoice.MONO
-                        }
-                    )
+                onTypographySelected(
+                    when (style) {
+                        TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
+                        TypographyStyle.SANS -> AppTypographyChoice.SANS
+                        TypographyStyle.MONO -> AppTypographyChoice.MONO
+                    }
                 )
             },
             currentTheme = currentTheme

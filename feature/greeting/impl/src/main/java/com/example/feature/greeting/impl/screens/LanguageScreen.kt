@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,17 +49,23 @@ private enum class LanguageOption { FOLLOW_SYSTEM, ENGLISH, CHINESE }
  * Language settings page: choose between following the system locale, English
  * or Simplified Chinese. Applies via [AppCompatDelegate.setApplicationLocales],
  * which persists the choice and recreates the activity with the new locale.
+ *
+ * Selection is derived from the persisted app locales (the single source of
+ * truth) on every recomposition. [pendingChoice] is only a transient marker
+ * for the tapped option: when the effective locale is unchanged the activity
+ * is NOT recreated and [configuration] never invalidates, so nothing else
+ * would move the checkmark. As soon as the configuration catches up (recreation
+ * or external locale change), the marker is cleared and the derived value wins.
  */
 @Composable
 fun LanguageScreen(
     currentTheme: CssVariables,
     modifier: Modifier = Modifier
 ) {
-    // Track the choice locally so tapping any option moves the checkmark right
-    // away, even when the effective locale is unchanged (which skips the
-    // activity recreation that would otherwise re-derive the selection). This
-    // mirrors the color-mode picker, where any option can be picked freely.
-    var selected by remember { mutableStateOf(deriveSelectedOption()) }
+    var pendingChoice by remember { mutableStateOf<LanguageOption?>(null) }
+    val configuration = LocalConfiguration.current
+    LaunchedEffect(configuration) { pendingChoice = null }
+    val selected = pendingChoice ?: deriveSelectedOption()
 
     Column(
         modifier = modifier
@@ -95,7 +103,7 @@ fun LanguageScreen(
                 currentTheme = currentTheme,
                 testTag = "language_option_follow_system",
                 onClick = {
-                    selected = LanguageOption.FOLLOW_SYSTEM
+                    pendingChoice = LanguageOption.FOLLOW_SYSTEM
                     applyLanguage(LanguageOption.FOLLOW_SYSTEM)
                 }
             )
@@ -106,7 +114,7 @@ fun LanguageScreen(
                 currentTheme = currentTheme,
                 testTag = "language_option_english",
                 onClick = {
-                    selected = LanguageOption.ENGLISH
+                    pendingChoice = LanguageOption.ENGLISH
                     applyLanguage(LanguageOption.ENGLISH)
                 }
             )
@@ -117,7 +125,7 @@ fun LanguageScreen(
                 currentTheme = currentTheme,
                 testTag = "language_option_chinese",
                 onClick = {
-                    selected = LanguageOption.CHINESE
+                    pendingChoice = LanguageOption.CHINESE
                     applyLanguage(LanguageOption.CHINESE)
                 }
             )

@@ -14,7 +14,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.feature.greeting.impl.components.NavigationTab
 import com.example.feature.greeting.impl.components.ProductionBottomNavBar
 import com.example.feature.greeting.impl.components.ProductionTopNavBar
@@ -25,9 +24,10 @@ import com.example.feature.greeting.impl.screens.TokensScreen
 import com.example.feature.greeting.impl.screens.TypeStudioScreen
 
 /**
- * Main destination: push-canvas sidebar + 4-tab scaffold. Renders the single
- * [GreetingState] exposed by [GreetingViewModel.stateFlow] and sends every user
- * intent back as a [GreetingAction] (unidirectional data flow).
+ * Main destination: push-canvas sidebar + 4-tab scaffold. Stateless renderer of
+ * [GreetingState]: every user intent leaves through [onAction] (wired to
+ * [GreetingViewModel.trySendAction] by the host), keeping the single stateFlow
+ * subscription at the activity root.
  *
  * The settings flow is NOT hosted here — it lives on the Navigation 3 back
  * stack as sibling destinations (see [GreetingNavHost]), so system back,
@@ -35,12 +35,11 @@ import com.example.feature.greeting.impl.screens.TypeStudioScreen
  */
 @Composable
 fun MainScreen(
-    viewModel: GreetingViewModel,
+    state: GreetingState,
+    onAction: (GreetingAction) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-
     val animatedBg by animateColorAsState(
         targetValue = state.theme.background,
         animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
@@ -50,7 +49,7 @@ fun MainScreen(
     // Only the drawer still needs an explicit back intercept; every other back
     // navigation is the NavDisplay back stack's job.
     BackHandler(enabled = state.isSidebarOpen) {
-        viewModel.trySendAction(GreetingAction.SidebarClosed)
+        onAction(GreetingAction.SidebarClosed)
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -58,9 +57,9 @@ fun MainScreen(
         SidebarDrawer(
             isOpen = state.isSidebarOpen,
             currentTheme = state.theme,
-            onOpen = { viewModel.trySendAction(GreetingAction.SidebarOpened) },
+            onOpen = { onAction(GreetingAction.SidebarOpened) },
             onOpenSettings = onOpenSettings,
-            onClose = { viewModel.trySendAction(GreetingAction.SidebarClosed) }
+            onClose = { onAction(GreetingAction.SidebarClosed) }
         ) {
             Scaffold(
                 containerColor = animatedBg,
@@ -68,7 +67,7 @@ fun MainScreen(
                 topBar = {
                     ProductionTopNavBar(
                         currentTheme = state.theme,
-                        onOpenSidebar = { viewModel.trySendAction(GreetingAction.SidebarToggled) },
+                        onOpenSidebar = { onAction(GreetingAction.SidebarToggled) },
                     )
                 },
                 modifier = Modifier.fillMaxSize()
@@ -79,9 +78,7 @@ fun MainScreen(
                 // for the drawer's edge swipe.
                 ProductionBottomNavBar(
                     currentTab = state.currentTab,
-                    onTabSelected = {
-                        viewModel.trySendAction(GreetingAction.TabSelected(it))
-                    },
+                    onTabSelected = { onAction(GreetingAction.TabSelected(it)) },
                     currentTheme = state.theme,
                     swipeable = true,
                     swipeEnabled = !state.isSidebarOpen,
@@ -99,18 +96,32 @@ fun MainScreen(
                     )
                 ) { tab ->
                     when (tab) {
-                        NavigationTab.CANVAS -> CanvasScreen(viewModel = viewModel)
+                        NavigationTab.CANVAS -> CanvasScreen(
+                            currentTheme = state.theme,
+                            typographyChoice = state.typographyChoice,
+                            greetingIndex = state.greetingIndex,
+                            customGreeting = state.customGreeting,
+                            heroQuotes = state.heroQuotes,
+                            heroCaptions = state.heroCaptions,
+                            onNextGreeting = { onAction(GreetingAction.NextGreetingClicked) },
+                            onCustomGreetingChanged = { part1, part2 ->
+                                onAction(GreetingAction.CustomGreetingChanged(part1, part2))
+                            },
+                            onThemeSelected = { onAction(GreetingAction.ThemeSelected(it)) },
+                            onTypographySelected = { onAction(GreetingAction.TypographySelected(it)) },
+                            onOpenInspector = { onAction(GreetingAction.InspectorShown) },
+                        )
                         NavigationTab.TYPOGRAPHY -> TypeStudioScreen(
                             currentTheme = state.theme,
                             selectedTypography = state.typographyChoice,
                             onTypographyChange = {
-                                viewModel.trySendAction(GreetingAction.TypographySelected(it))
+                                onAction(GreetingAction.TypographySelected(it))
                             }
                         )
                         NavigationTab.TOKENS -> TokensScreen(
                             currentTheme = state.theme,
                             onOpenInspector = {
-                                viewModel.trySendAction(GreetingAction.InspectorShown)
+                                onAction(GreetingAction.InspectorShown)
                             }
                         )
                         // 4th tab is intentionally blank (settings moved to the sidebar flow)

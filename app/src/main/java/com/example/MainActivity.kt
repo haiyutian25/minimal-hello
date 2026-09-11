@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
                 LocalDensity provides Density(density = baseDensity.density, fontScale = state.fontScale)
             ) {
                 MinimalTheme(cssVars = state.theme) {
-                    GreetingNavHost(viewModel = viewModel)
+                    GreetingNavHost(viewModel = viewModel, state = state)
                 }
             }
         }

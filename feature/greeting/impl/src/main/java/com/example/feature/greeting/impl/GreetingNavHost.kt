@@ -13,7 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.example.core.navigation.rememberAppNavigator
@@ -39,16 +38,17 @@ import com.example.feature.greeting.impl.screens.SplashScreen
  * system back gesture, predictive back and process-death restore are all
  * handled by Navigation 3 — no in-state navigation simulation.
  *
- * Toast events and the CSS inspector sheet are hosted here (above every
- * destination) so they stay available on settings pages too.
+ * [state] is hoisted from the activity (the single stateFlow subscription
+ * lives there); toast events and the CSS inspector sheet are hosted here,
+ * above every destination, so they stay available on settings pages too.
  */
 @Composable
 fun GreetingNavHost(
     viewModel: GreetingViewModel,
+    state: GreetingState,
     modifier: Modifier = Modifier,
 ) {
     val navigator = rememberAppNavigator(GreetingNavKey.Splash)
-    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     // Consume one-time UI events (toasts) exactly once, lifecycle-aware.
     val eventContext = LocalContext.current
@@ -72,7 +72,8 @@ fun GreetingNavHost(
                 }
                 entry<GreetingNavKey.Main> {
                     MainScreen(
-                        viewModel = viewModel,
+                        state = state,
+                        onAction = viewModel::trySendAction,
                         onOpenSettings = {
                             viewModel.trySendAction(GreetingAction.SidebarClosed)
                             navigator.navigate(GreetingNavKey.SettingsMenu)

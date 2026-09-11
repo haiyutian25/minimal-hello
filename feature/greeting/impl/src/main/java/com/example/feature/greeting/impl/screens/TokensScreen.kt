@@ -2,9 +2,6 @@ package com.example.feature.greeting.impl.screens
 
 import com.example.core.ui.util.copyToClipboard
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
