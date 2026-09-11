@@ -20,13 +20,6 @@ interface UserPreferencesRepository {
     suspend fun updateColorMode(colorMode: String)
     suspend fun updateFontScale(fontScale: Float)
     suspend fun updateActiveCustomFont(fontId: String)
-
-    /**
-     * Persists the navigation chrome state in one transaction. The three
-     * fields change together and are restored together after process death,
-     * so they are written as a unit rather than via per-field updaters.
-     */
-    suspend fun updateNavigationState(currentTab: String, settingsLevel: String, isSidebarOpen: Boolean)
 }
 
 /**
@@ -65,16 +58,4 @@ class UserPreferencesRepositoryImpl(
 
     override suspend fun updateActiveCustomFont(fontId: String) =
         userPreferencesDataStore.update { it.copy(activeCustomFontId = fontId) }
-
-    override suspend fun updateNavigationState(
-        currentTab: String,
-        settingsLevel: String,
-        isSidebarOpen: Boolean,
-    ) = userPreferencesDataStore.update {
-        it.copy(
-            currentTab = currentTab,
-            settingsLevel = settingsLevel,
-            isSidebarOpen = isSidebarOpen,
-        )
-    }
 }

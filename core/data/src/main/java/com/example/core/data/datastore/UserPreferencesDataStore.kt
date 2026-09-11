@@ -3,7 +3,6 @@ package com.example.core.data.datastore
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -44,9 +43,6 @@ class UserPreferencesDataStore @Inject constructor(
             prefs[KEY_COLOR_MODE] = updated.colorMode
             prefs[KEY_FONT_SCALE] = updated.fontScale
             prefs[KEY_ACTIVE_FONT] = updated.activeCustomFontId
-            prefs[KEY_CURRENT_TAB] = updated.currentTab
-            prefs[KEY_SETTINGS_LEVEL] = updated.settingsLevel
-            prefs[KEY_IS_SIDEBAR_OPEN] = updated.isSidebarOpen
         }
     }
 
@@ -56,9 +52,6 @@ class UserPreferencesDataStore @Inject constructor(
         colorMode = this[KEY_COLOR_MODE] ?: UserPreferences.DEFAULT.colorMode,
         fontScale = this[KEY_FONT_SCALE] ?: UserPreferences.DEFAULT.fontScale,
         activeCustomFontId = this[KEY_ACTIVE_FONT] ?: UserPreferences.DEFAULT.activeCustomFontId,
-        currentTab = this[KEY_CURRENT_TAB] ?: UserPreferences.DEFAULT.currentTab,
-        settingsLevel = this[KEY_SETTINGS_LEVEL] ?: UserPreferences.DEFAULT.settingsLevel,
-        isSidebarOpen = this[KEY_IS_SIDEBAR_OPEN] ?: UserPreferences.DEFAULT.isSidebarOpen,
     )
 
     private companion object {
@@ -67,9 +60,6 @@ class UserPreferencesDataStore @Inject constructor(
         val KEY_COLOR_MODE = stringPreferencesKey("colorMode")
         val KEY_FONT_SCALE = floatPreferencesKey("fontScale")
         val KEY_ACTIVE_FONT = stringPreferencesKey("activeCustomFontId")
-        val KEY_CURRENT_TAB = stringPreferencesKey("currentTab")
-        val KEY_SETTINGS_LEVEL = stringPreferencesKey("settingsLevel")
-        val KEY_IS_SIDEBAR_OPEN = booleanPreferencesKey("isSidebarOpen")
     }
 }
 

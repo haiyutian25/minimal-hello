@@ -400,15 +400,9 @@ class GreetingViewModel @Inject constructor(
                     ?: AppTypographyChoice.EDITORIAL,
                 fontScale = prefs.fontScale,
                 activeCustomFontId = prefs.activeCustomFontId,
-                // Navigation chrome state is persisted too, so the user's
-                // location inside the feature survives process death.
-                currentTab = NavigationTab.entries
-                    .firstOrNull { it.name == prefs.currentTab }
-                    ?: NavigationTab.CANVAS,
-                settingsLevel = SettingsLevel.entries
-                    .firstOrNull { it.name == prefs.settingsLevel }
-                    ?: SettingsLevel.NONE,
-                isSidebarOpen = prefs.isSidebarOpen,
+                // Navigation chrome state (currentTab / settingsLevel / isSidebarOpen) is
+                // intentionally NOT restored here — it is session-transient and always
+                // starts fresh (splash -> default tab) after process death.
             )
         }
     }
@@ -442,15 +436,13 @@ class GreetingViewModel @Inject constructor(
      * Updates [mutableStateFlow] and re-derives the derived fields ([GreetingState.theme],
      * [GreetingState.activeContentFont]) so they always stay consistent with the raw inputs.
      *
-     * Also the single persistence choke point for the navigation chrome state:
-     * whenever an action changes [GreetingState.currentTab], [GreetingState.settingsLevel]
-     * or [GreetingState.isSidebarOpen], the new triple is written to DataStore here —
-     * individual handlers stay free of persistence calls. The before/after comparison
-     * skips redundant writes, so the restore round-trip triggered by
-     * [GreetingAction.Internal.PreferencesReceived] does not loop back into DataStore.
+     * Note: navigation chrome state (currentTab / settingsLevel / isSidebarOpen) is
+     * deliberately NOT persisted to DataStore. It is transient per-session UI position —
+     * persisting it caused a restore/write feedback loop (sidebar/settings flicker) and
+     * wrongly dropped the user back onto the previous screen after process death instead
+     * of the splash screen.
      */
     private inline fun updateState(block: GreetingState.() -> GreetingState) {
-        val previousNavKey = state.navKey()
         mutableStateFlow.update { current ->
             val next = current.block()
             next.copy(
@@ -462,21 +454,6 @@ class GreetingViewModel @Inject constructor(
                 ),
                 activeContentFont = customFontRepository.fontFamilyFor(next.activeCustomFontId)
                     ?: next.typographyChoice.font,
-            )
-        }
-        if (state.navKey() != previousNavKey) persistNavigationState()
-    }
-
-    /** Identity of the persisted navigation chrome state. */
-    private fun GreetingState.navKey() = Triple(currentTab, settingsLevel, isSidebarOpen)
-
-    private fun persistNavigationState() {
-        val current = state
-        viewModelScope.launch {
-            userPreferencesRepository.updateNavigationState(
-                currentTab = current.currentTab.name,
-                settingsLevel = current.settingsLevel.name,
-                isSidebarOpen = current.isSidebarOpen,
             )
         }
     }

@@ -1,12 +1,12 @@
 package com.example.core.data.model
 
 /**
- * Domain model for persisted UI preferences.
+ * Domain model for persisted UI preferences (theme, typography, language, color mode,
+ * font scale, active custom font).
  *
- * Also carries the navigation chrome state ([currentTab], [settingsLevel],
- * [isSidebarOpen]) so the user's location inside the feature survives
- * process death. Enum values are stored by their `name` ids; the feature
- * layer owns the mapping back to its enums.
+ * Note: navigation chrome state (currentTab / settingsLevel / isSidebarOpen) is NOT
+ * part of preferences — it is session-transient UI position and always starts fresh
+ * after process death.
  */
 data class UserPreferences(
     val themeId: String,
@@ -14,9 +14,6 @@ data class UserPreferences(
     val colorMode: String,
     val fontScale: Float,
     val activeCustomFontId: String,
-    val currentTab: String,
-    val settingsLevel: String,
-    val isSidebarOpen: Boolean,
 ) {
     companion object {
         val DEFAULT = UserPreferences(
@@ -25,9 +22,6 @@ data class UserPreferences(
             colorMode = ColorMode.SYSTEM.id,
             fontScale = 1.0f,
             activeCustomFontId = "",
-            currentTab = "CANVAS",
-            settingsLevel = "NONE",
-            isSidebarOpen = false,
         )
     }
 }
