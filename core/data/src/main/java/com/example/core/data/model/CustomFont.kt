@@ -1,4 +1,4 @@
-package com.example.feature.greeting.impl.fonts
+package com.example.core.data.model
 
 /**
  * A downloadable preset font hosted on GitHub Releases

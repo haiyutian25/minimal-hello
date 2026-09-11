@@ -47,12 +47,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.core.data.model.InstalledFont
+import com.example.core.data.model.PresetFont
+import com.example.core.data.model.PresetFontCatalog
 import com.example.core.ui.theme.CssVariables
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
-import com.example.feature.greeting.impl.fonts.InstalledFont
-import com.example.feature.greeting.impl.fonts.PresetFont
-import com.example.feature.greeting.impl.fonts.PresetFontCatalog
 import kotlin.math.roundToInt
 
 /**

@@ -1,15 +1,15 @@
-package com.example.feature.greeting.impl.fonts
+package com.example.core.data.repository
 
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import com.example.core.data.datasource.FontRemoteDataSource
 import com.example.core.data.manager.dispatcher.DispatcherManager
+import com.example.core.data.model.InstalledFont
+import com.example.core.data.model.PresetFont
+import com.example.core.data.model.PresetFontCatalog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -20,8 +20,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
 /**
- * Manages user-installed fonts (downloaded presets + local imports) on disk,
- * exposes live download progress, and resolves font IDs to Compose [FontFamily].
+ * Data-layer store for user-installed fonts (downloaded presets + local
+ * imports): owns the on-disk font directory, download orchestration (via
+ * [FontRemoteDataSource]), live download progress and the installed-set
+ * snapshot.
+ *
+ * Compose [androidx.compose.ui.text.font.FontFamily] resolution deliberately
+ * does NOT live here — that is a presentation concern; the feature layer
+ * resolves IDs to font families through [installedFontFile].
  */
 @Singleton
 class CustomFontRepository @Inject constructor(
@@ -32,12 +38,10 @@ class CustomFontRepository @Inject constructor(
     private val fontsDir: File
         get() = File(context.filesDir, DIR_NAME).apply { if (!exists()) mkdirs() }
 
-    private val fontFamilyCache = ConcurrentHashMap<String, FontFamily>()
-
     /**
      * In-memory snapshot of the on-disk font file names, refreshed by every
      * [installedFonts] scan and kept current by install/delete mutations.
-     * [fontFamilyFor] is on the hot read path (called from the ViewModel's
+     * [installedFontFile] is on the hot read path (called from the ViewModel's
      * updateState and from LazyList item compositions, both on the main
      * thread), so membership must never be answered with filesystem I/O.
      */
@@ -76,17 +80,17 @@ class CustomFontRepository @Inject constructor(
     fun isInstalled(fontId: String): Boolean = File(fontsDir, fontId).exists()
 
     /**
-     * Resolves an installed font ID to a cached [FontFamily], or null if missing.
+     * Resolves an installed font ID to its on-disk [File], or null if missing.
      * Membership is answered from the in-memory [installedIds] snapshot — no
      * disk I/O on the caller thread. Until the first scan lands after process
      * start the snapshot is empty; the [installedVersion] collection in the
      * ViewModel triggers that scan and re-derives the font, so the choice
      * self-heals within one frame sequence.
      */
-    fun fontFamilyFor(fontId: String): FontFamily? {
+    fun installedFontFile(fontId: String): File? {
         if (fontId.isEmpty()) return null
         if (fontId !in installedIds) return null
-        return fontFamilyCache.getOrPut(fontId) { FontFamily(Font(file = File(fontsDir, fontId))) }
+        return File(fontsDir, fontId)
     }
 
     /**
@@ -158,10 +162,9 @@ class CustomFontRepository @Inject constructor(
         }
     }
 
-    /** Deletes an installed font file and evicts its cached family. */
+    /** Deletes an installed font file. */
     suspend fun deleteFont(fontId: String) = withContext(dispatcherManager.io) {
         File(fontsDir, fontId).delete()
-        fontFamilyCache.remove(fontId)
         installedIds = installedIds - fontId
         bumpInstalled()
     }

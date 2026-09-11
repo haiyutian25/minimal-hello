@@ -8,7 +8,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.viewModelScope
 import com.example.core.data.model.ColorMode
+import com.example.core.data.model.InstalledFont
+import com.example.core.data.model.PresetFont
 import com.example.core.data.model.UserPreferences
+import com.example.core.data.repository.CustomFontRepository
 import com.example.core.data.repository.GreetingRepository
 import com.example.core.data.repository.HeroQuote
 import com.example.core.data.repository.UserPreferencesRepository
@@ -16,9 +19,7 @@ import com.example.core.ui.base.BaseViewModel
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ThemeResolver
 import com.example.feature.greeting.impl.components.NavigationTab
-import com.example.feature.greeting.impl.fonts.CustomFontRepository
-import com.example.feature.greeting.impl.fonts.InstalledFont
-import com.example.feature.greeting.impl.fonts.PresetFont
+import com.example.feature.greeting.impl.fonts.CustomFontFamilyCache
 import com.example.feature.greeting.impl.screens.AppTypographyChoice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -171,6 +172,7 @@ class GreetingViewModel @Inject constructor(
     @ApplicationContext appContext: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val customFontRepository: CustomFontRepository,
+    private val customFontFamilyCache: CustomFontFamilyCache,
     greetingRepository: GreetingRepository,
 ) : BaseViewModel<GreetingState, GreetingEvent, GreetingAction>(
     initialState = run {
@@ -351,6 +353,7 @@ class GreetingViewModel @Inject constructor(
             updateState { copy(activeCustomFontId = "") }
             viewModelScope.launch { userPreferencesRepository.updateActiveCustomFont("") }
         }
+        customFontFamilyCache.evict(action.fontId)
         viewModelScope.launch { customFontRepository.deleteFont(action.fontId) }
         sendEvent(GreetingEvent.ShowToast(R.string.font_deleted_toast))
     }
@@ -452,12 +455,12 @@ class GreetingViewModel @Inject constructor(
                     primaryOverride = next.primaryOverride,
                     isSystemDark = next.isSystemDark,
                 ),
-                activeContentFont = customFontRepository.fontFamilyFor(next.activeCustomFontId)
+                activeContentFont = customFontFamilyCache.fontFamilyFor(next.activeCustomFontId)
                     ?: next.typographyChoice.font,
             )
         }
     }
 
     /** Resolves an installed custom font to a [FontFamily] for UI previews. */
-    fun customFontFamily(fontId: String): FontFamily? = customFontRepository.fontFamilyFor(fontId)
+    fun customFontFamily(fontId: String): FontFamily? = customFontFamilyCache.fontFamilyFor(fontId)
 }
