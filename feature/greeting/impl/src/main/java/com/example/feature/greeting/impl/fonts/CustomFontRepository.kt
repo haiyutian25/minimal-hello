@@ -5,21 +5,19 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import com.example.core.data.datasource.FontRemoteDataSource
 import com.example.core.data.manager.dispatcher.DispatcherManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 
 /**
  * Manages user-installed fonts (downloaded presets + local imports) on disk,
@@ -29,17 +27,8 @@ import okhttp3.Request
 class CustomFontRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dispatcherManager: DispatcherManager,
-    okHttpClient: OkHttpClient,
+    private val fontRemoteDataSource: FontRemoteDataSource,
 ) {
-    /**
-     * Derived from the shared Hilt-provided client (core:network): same
-     * connection pool, dispatcher and debug logging interceptor, but with the
-     * longer timeouts multi-MB font downloads need.
-     */
-    private val downloadClient: OkHttpClient = okHttpClient.newBuilder()
-        .connectTimeout(CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-        .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-        .build()
     private val fontsDir: File
         get() = File(context.filesDir, DIR_NAME).apply { if (!exists()) mkdirs() }
 
@@ -102,9 +91,10 @@ class CustomFontRepository @Inject constructor(
 
     /**
      * Downloads a preset font to disk, streaming progress to [downloadProgress].
-     * The transferred bytes are SHA-256 verified against [PresetFont.sha256];
-     * a mismatching file (tampered, truncated or a stale server copy) is
-     * rejected and never installed.
+     * The transfer runs through the Retrofit download API (core:network via
+     * [FontRemoteDataSource]) and the received bytes are SHA-256 verified
+     * against [PresetFont.sha256]; a mismatching file (tampered, truncated or
+     * a stale server copy) is rejected and never installed.
      */
     suspend fun downloadPreset(preset: PresetFont): Boolean = withContext(dispatcherManager.io) {
         if (isInstalled(preset.fileName)) return@withContext true
@@ -112,31 +102,13 @@ class CustomFontRepository @Inject constructor(
         val partial = File(fontsDir, preset.fileName + PARTIAL_SUFFIX)
         try {
             setProgress(preset.fileName, 0f)
-            val request = Request.Builder().url(preset.downloadUrl).build()
-            downloadClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext fail(partial, preset.fileName)
-                val body = response.body ?: return@withContext fail(partial, preset.fileName)
-                val total = body.contentLength().takeIf { it > 0 } ?: preset.sizeBytes
-                val digest = MessageDigest.getInstance("SHA-256")
-                body.byteStream().use { input ->
-                    partial.outputStream().use { output ->
-                        val buffer = ByteArray(BUFFER_SIZE)
-                        var bytesRead: Int
-                        var downloaded = 0L
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                            digest.update(buffer, 0, bytesRead)
-                            downloaded += bytesRead
-                            setProgress(preset.fileName, (downloaded.toFloat() / total).coerceIn(0f, 0.99f))
-                        }
-                        output.flush()
-                    }
-                }
-                val actualDigest = digest.digest().toHexString()
-                if (!actualDigest.equals(preset.sha256, ignoreCase = true)) {
-                    return@withContext fail(partial, preset.fileName)
-                }
-            }
+            val verified = fontRemoteDataSource.downloadAndVerify(
+                url = preset.downloadUrl,
+                target = partial,
+                expectedSha256 = preset.sha256,
+                sizeHintBytes = preset.sizeBytes,
+            ) { progress -> setProgress(preset.fileName, progress) }
+            if (!verified) return@withContext fail(partial, preset.fileName)
             if (!partial.renameTo(target)) {
                 partial.copyTo(target, overwrite = true)
                 partial.delete()
@@ -147,6 +119,9 @@ class CustomFontRepository @Inject constructor(
             // after deletion) shows the download button, not a stale 100% bar.
             setProgress(preset.fileName, null)
             true
+        } catch (e: CancellationException) {
+            fail(partial, preset.fileName)
+            throw e
         } catch (e: Exception) {
             fail(partial, preset.fileName)
         }
@@ -221,9 +196,6 @@ class CustomFontRepository @Inject constructor(
         private const val DIR_NAME = "custom_fonts"
         private const val UPLOAD_PREFIX = "upload_"
         private const val PARTIAL_SUFFIX = ".part"
-        private const val BUFFER_SIZE = 64 * 1024
-        private const val CONNECT_TIMEOUT_MS = 15_000L
-        private const val READ_TIMEOUT_MS = 60_000L
         private val FONT_EXTENSIONS = setOf("ttf", "otf")
     }
 }

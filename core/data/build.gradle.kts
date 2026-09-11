@@ -23,6 +23,8 @@ dependencies {
 
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.androidx.datastore.preferences)
+  // ResponseBody type of FontDownloadApi (core:network) used by FontRemoteDataSource.
+  implementation(libs.okhttp)
 
   implementation(libs.hilt.android)
   ksp(libs.hilt.compiler)

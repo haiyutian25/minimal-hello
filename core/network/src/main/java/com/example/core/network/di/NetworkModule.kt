@@ -1,11 +1,13 @@
 package com.example.core.network.di
 
 import com.example.core.network.BuildConfig
+import com.example.core.network.FontDownloadApi
 import com.example.core.network.GreetingApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -61,4 +63,30 @@ object NetworkModule {
     @Singleton
     fun provideGreetingApi(retrofit: Retrofit): GreetingApi =
         retrofit.create(GreetingApi::class.java)
+
+    /**
+     * Font downloads ride on a dedicated Retrofit instance whose client is
+     * derived from the shared one: same connection pool, dispatcher and debug
+     * logging interceptor, but with the longer timeouts multi-MB font payloads
+     * need. No converter factory — the body is streamed raw.
+     */
+    @Provides
+    @Singleton
+    fun provideFontDownloadApi(
+        okHttpClient: OkHttpClient,
+        @BaseUrl baseUrl: String,
+    ): FontDownloadApi =
+        Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(
+                okHttpClient.newBuilder()
+                    .connectTimeout(FONT_CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    .readTimeout(FONT_READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    .build()
+            )
+            .build()
+            .create(FontDownloadApi::class.java)
 }
+
+private const val FONT_CONNECT_TIMEOUT_MS = 15_000L
+private const val FONT_READ_TIMEOUT_MS = 60_000L
