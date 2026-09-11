@@ -21,6 +21,13 @@ import kotlinx.coroutines.launch
  *   reserved for things such as non-state based navigation.
  * - Receiving actions (of type [A]) that may induce changes in the current state, trigger an
  *   event emission, or both.
+ *
+ * Channel capacities are [Channel.UNLIMITED] on purpose: user intents must be
+ * queued, never dropped — a lost tap corrupts UI state, a queued one is only
+ * delayed. [handleAction] runs synchronously on a single consumer coroutine, so
+ * the queue drains in microseconds and stays strict FIFO; a growing backlog
+ * indicates a blocking handler bug, not a capacity problem. Do NOT switch to a
+ * bounded capacity: a full bounded buffer would silently discard user intents.
  */
 abstract class BaseViewModel<S, E, A>(
     initialState: S,
@@ -70,10 +77,14 @@ abstract class BaseViewModel<S, E, A>(
 
     /**
      * Convenience method for sending an action to the [actionChannel].
+     *
+     * With the unlimited channel this fails only once the channel is closed,
+     * i.e. after [ViewModel.onCleared]; such actions are dropped by design
+     * because the owning screen is gone. Returns whether the action was
+     * accepted, so the (deliberately rare) drop is observable to callers and
+     * tests instead of being silently swallowed.
      */
-    fun trySendAction(action: A) {
-        actionChannel.trySend(action)
-    }
+    fun trySendAction(action: A): Boolean = actionChannel.trySend(action).isSuccess
 
     /**
      * Helper method for sending an internal action.
