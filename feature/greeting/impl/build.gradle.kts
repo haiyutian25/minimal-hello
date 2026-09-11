@@ -40,5 +40,6 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.compose)
 
   implementation(libs.hilt.android)
+  implementation(libs.okhttp)
   ksp(libs.hilt.compiler)
 }

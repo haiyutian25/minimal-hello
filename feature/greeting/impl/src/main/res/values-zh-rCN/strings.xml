@@ -178,4 +178,7 @@
     <string name="language_menu_subtitle">应用显示语言</string>
     <string name="language_section">显示语言</string>
     <string name="language_follow_system">跟随系统</string>
+    <!-- 语言名以其母语显示（与默认资源一致），不随界面语言翻译 -->
+    <string name="language_english">English</string>
+    <string name="language_chinese">中文</string>
 </resources>

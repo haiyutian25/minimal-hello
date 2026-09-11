@@ -20,7 +20,7 @@ minimal-hello/
 └── gradle/libs.versions.toml   # Version catalog
 ```
 
-- **MVVM**: `GreetingViewModel` owns all feature state (theme, typography, tab, sidebar, inspector, greeting content) as `StateFlow`s; user preferences — including the navigation chrome state — are persisted through Preferences DataStore via the data layer.
+- **MVVM**: `GreetingViewModel` owns all feature state (theme, typography, fonts, tab, sidebar, inspector, greeting content) as `StateFlow`s; user preferences (theme, color mode, typography, font scale, active custom font) are persisted through Preferences DataStore via the data layer. Navigation chrome state (tab/sidebar/settings level) is session-transient and deliberately not persisted.
 - **Navigation 3**: destinations are declared as a serializable `NavKey` contract in `feature:greeting:api`; the app shell assembles them through `NavDisplay` + `entryProvider`.
 - **DI**: Hilt 2.x wires the database, network, data and ViewModel layers.
 

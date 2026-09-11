@@ -2,7 +2,7 @@
 
 > 本文档详细剖析项目的多模块工程结构、MVVM 状态管理、Navigation 3 导航、Hilt 依赖注入，以及所有 UI 组件、多主题切换、推拽式侧边栏、打字机启动页的开发原理、核心实现与调参指南。
 >
-> **本版本已按多模块化重构后的实际代码逐项核验（核验日期：2026-08-28）**，所有参数、路径与功能描述均与当前源码一致。
+> **本版本已按当前源码逐项核验（核验日期：2026-09-11）**，所有参数、路径与功能描述均与当前源码一致。
 
 ---
 
@@ -28,7 +28,7 @@
 
 本应用基于 **Jetpack Compose**（无任何 XML 布局），采用 **多模块 + MVVM + UDF（单向数据流）** 架构。
 
-构建基线：AGP 9.1.1、Kotlin 2.2.10、Compose BOM 2026.08.00、Navigation 3 1.1.4、Hilt 2.60.1、Room 2.7.0、compileSdk 37、minSdk 24 / targetSdk 36、JDK 21。
+构建基线：AGP 9.1.1、Kotlin 2.2.10、Compose BOM 2026.08.00、Navigation 3 1.1.7、Hilt 2.60.1、Room 2.7.0、compileSdk 37、minSdk 24 / targetSdk 37、JDK 21。
 
 ### 1.1 模块结构与职责
 
@@ -38,21 +38,25 @@ minimal-hello/
 │   ├── MinimalHelloApplication   # @HiltAndroidApp 入口
 │   └── MainActivity              # @AndroidEntryPoint：hiltViewModel() + MinimalTheme + GreetingNavHost
 ├── core/
-│   ├── data/                     # 数据层：仓库接口/实现 + Hilt 绑定
-│   │   ├── model/UserPreferences             # 领域模型（themeId + typographyChoice）
-│   │   ├── repository/GreetingRepository     # 策展文案数据源（6 组语录 + 5 条说明）
-│   │   ├── repository/UserPreferencesRepository  # 偏好读写（Room 支撑）
-│   │   └── di/DataModule                     # @Binds 绑定
-│   ├── database/                 # Room：user_preferences 单行表
-│   │   ├── UserPreferencesEntity / UserPreferencesDao / AppDatabase
-│   │   └── di/DatabaseModule                 # @Provides 数据库与 DAO
+│   ├── data/                     # 数据层：仓库接口/实现 + Hilt 装配
+│   │   ├── model/UserPreferences             # 领域模型（themeId / typographyChoice / colorMode / fontScale / activeCustomFontId）
+│   │   ├── datastore/UserPreferencesDataStore  # Preferences DataStore 读写（偏好唯一存储）
+│   │   ├── repository/GreetingRepository     # 策展文案数据源（6 组语录 + 5 条说明，远程就绪）
+│   │   ├── repository/UserPreferencesRepository  # 偏好读写（DataStore 支撑）
+│   │   ├── datasource/GreetingRemoteDataSource   # 远程数据源（对接 core:network）
+│   │   ├── manager/dispatcher/DispatcherManager  # 可注入协程调度器
+│   │   └── di/DataModule                     # @Provides 装配
+│   ├── database/                 # Room：预留给结构化本地数据（仅保留 legacy 实体，无 DAO）
+│   │   ├── UserPreferencesEntity / AppDatabase
+│   │   └── di/DatabaseModule                 # @Provides 数据库（含 1→4 迁移链）
 │   ├── navigation/               # Navigation 3 封装
-│   │   └── AppNavigator                      # NavigationState 包装（navigate/replace/goBack）
-│   ├── network/                  # Retrofit/OkHttp/Moshi（Hilt 提供，GreetingApi 占位契约）
+│   │   └── AppNavigator                      # NavBackStack 包装（navigate/replace/goBack）
+│   ├── network/                  # Retrofit/OkHttp/kotlinx.serialization（Hilt 提供，baseUrl 占位）
 │   └── ui/                       # 设计系统
-│       ├── theme/CssTokens       # CssVariables 模型、12 套预设、ThemeResolver、:root 导出
+│       ├── theme/CssTokens       # CssVariables 模型、12 套预设、ThemeResolver（含 families 目录）、:root 导出
 │       ├── theme/Theme           # MinimalTheme + LocalCssVariables + M3 ColorScheme 映射
-│       ├── theme/Type            # Material3 Typography
+│       ├── theme/Type            # AppTypography（Material3 Typography）+ LocalContentFontFamily
+│       ├── base/                 # BaseViewModel（UDF 三要素）+ EventsEffect（生命周期感知事件消费）
 │       └── util/Clipboard        # Context.copyToClipboard 共享扩展
 └── feature/
     └── greeting/
@@ -61,9 +65,9 @@ minimal-hello/
             ├── GreetingViewModel             # @HiltViewModel，功能唯一状态源
             ├── GreetingNavHost               # NavDisplay + entryProvider 组装
             ├── MainScreen                    # 推拽侧边栏 + 4 标签 Scaffold + 审查器
+            ├── fonts/                        # CustomFontRepository（下载/导入/删除）+ PresetFontCatalog（GitHub Releases + SHA-256）
             ├── screens/CanvasScreen          # 主画布工作台（原 MainActivity 内联代码抽取）
-            ├── screens/{Splash,TypeStudio,Tokens,Settings}Screen
-            └── components/{TopNavBar,BottomNavBar,SidebarDrawer,CssVariableInspector}
+            └── screens/{Splash,TypeStudio,Tokens,Settings,SettingsMenu,Language,Font,FontSize}Screen
 ```
 
 ### 1.2 模块依赖方向（只能向下依赖）
@@ -72,10 +76,10 @@ minimal-hello/
 app ──► feature:greeting:impl ──► feature:greeting:api
  │              │  │  │                    │
  │              │  │  └► core:navigation ──┴► Navigation3 runtime/ui
- │              │  └► core:data ──► core:database ──► Room
- │              └► core:ui
+ │              │  ├► core:data ──► core:database ──► Room（预留，无 DAO）
+ │              │  │            └─► core:network ──► Retrofit/OkHttp
+ │              │  └► core:ui
  └► core:ui
-core:network（独立，Hilt 图谱在 app 汇聚）
 ```
 
 > 规则：feature 之间不互相依赖；跨 feature 导航只允许依赖对方的 `:api` 模块；主题令牌放在 `core:ui` 保证所有模块可用。
@@ -86,10 +90,10 @@ core:network（独立，Hilt 图谱在 app 汇聚）
 
 ### 2.1 GreetingViewModel（feature:greeting:impl）
 
-`@HiltViewModel` 注入 `UserPreferencesRepository` 与 `GreetingRepository`，继承 `core:ui` 的
+`@HiltViewModel` 注入 `UserPreferencesRepository`、`CustomFontRepository`、`GreetingRepository` 与 `@ApplicationContext`，继承 `core:ui` 的
 `BaseViewModel<GreetingState, GreetingEvent, GreetingAction>`，以 UDF 三要素对外：
 
-- **State**：单一不可变 `GreetingState`（`stateFlow`），聚合主题/排版/字体/标签页/侧栏/审查器/
+- **State**：单一不可变 `GreetingState`（`stateFlow`），聚合主题/排版/字体（含自定义字体列表与下载进度）/标签页/侧栏/审查器/
   问候/设置层级等全部状态；`theme` 与 `activeContentFont` 为派生字段，每次更新自动重算。
 - **Action**：所有用户意图收敛为 `GreetingAction` sealed interface（如 `TabSelected`、
   `ThemeSelected`、`NextGreetingClicked`、设置导航系列），UI 一律 `trySendAction(...)` 发送。
@@ -104,12 +108,13 @@ core:network（独立，Hilt 图谱在 app 汇聚）
 用户选择主题/排版 → trySendAction(GreetingAction.ThemeSelected/TypographySelected)
     → handleAction 同步更新 GreetingState
     → viewModelScope.launch { repository.updateTheme()/updateTypography() }
-    → Room upsert（user_preferences 单行表）
-    → DAO Flow 发射 → Internal.PreferencesReceived action → 同步回填 GreetingState
+    → Preferences DataStore 原子写入（user_preferences 偏好文件）
+    → preferencesStateFlow 发射 → Internal.PreferencesReceived action → 同步回填 GreetingState
 ```
 
-- 主题解析集中在 `core:ui` 的 `ThemeResolver.fromThemeId(themeId)`（未知 ID 兜底 EditorialLight）。
+- 主题解析集中在 `core:ui` 的 `ThemeResolver`（`fromThemeId` / `familyOf` / `resolveFamily`，未知 ID 兜底 EditorialLight）。
 - 审查器的 `--primary` 实时覆盖是**瞬态**的（`GreetingState.primaryOverride`），不入库，与旧版行为一致。
+- 导航界面状态（currentTab / settingsLevel / isSidebarOpen）**不持久化**：它属于会话瞬态 UI 位置，持久化会导致恢复/写入反馈环（侧栏/设置闪烁），并会在进程死亡后把用户带回旧页面而非启动页。
 
 ### 2.3 View 层观察方式
 
@@ -132,14 +137,14 @@ onTabSelected = { viewModel.trySendAction(GreetingAction.TabSelected(it)) }
 | 模块 | 注入内容 | 作用域 |
 | :--- | :--- | :--- |
 | `app` | `@HiltAndroidApp MinimalHelloApplication`、`@AndroidEntryPoint MainActivity` | — |
-| `core:database` | `DatabaseModule`：`AppDatabase`（Room.databaseBuilder，`minimal-hello.db`）、`UserPreferencesDao` | Singleton |
-| `core:network` | `NetworkModule`：`OkHttpClient`（BASIC 日志）、`Retrofit`（Moshi 转换器）、`GreetingApi` | Singleton |
-| `core:data` | `DataModule`：`@Binds` 两个仓库实现 | Singleton |
-| `feature:greeting:impl` | `@HiltViewModel GreetingViewModel` | ViewModel |
+| `core:database` | `DatabaseModule`：`AppDatabase`（Room.databaseBuilder，`minimal-hello.db`，含 1→4 迁移链；当前无 DAO，为结构化数据预留） | Singleton |
+| `core:network` | `NetworkModule`：`OkHttpClient`（debug BASIC 日志 / release 静默）、`Retrofit`（kotlinx.serialization 转换器）、`@BaseUrl`、`GreetingApi` | Singleton |
+| `core:data` | `DataModule`：`@Provides` DispatcherManager 与两个仓库实现 | Singleton |
+| `feature:greeting:impl` | `@HiltViewModel GreetingViewModel`、@Singleton `CustomFontRepository` | ViewModel / Singleton |
 
 `MainActivity` 中通过 `hiltViewModel()`（`androidx.hilt.lifecycle.viewmodel.compose` 包）获取 VM，`MinimalTheme(cssVars = currentTheme)` 包裹 `GreetingNavHost`。
 
-> `core:network` 当前无实际端点（`GreetingApi` 为空契约），仅把完整 Retrofit/OkHttp 栈接入 Hilt 图谱，未来加接口只需在 `GreetingApi` 声明方法。
+> `core:network` 的 baseUrl 是占位（`https://api.example.com/`），但栈已完整就绪：`GreetingApi` 声明了 `@GET("greetings")` 契约，`core:data` 的 `GreetingRemoteDataSource` 负责 DTO → 领域模型映射，`GreetingRepository.fetchRemoteHeroQuotes()` 失败时降级为空列表（本地策展语录始终兜底）。接真实后端只需替换 `NetworkModule.provideBaseUrl()`。
 
 ---
 
@@ -170,20 +175,18 @@ NavDisplay(
     backStack = navigator.navigationState,
     entryProvider = entryProvider {
         entry<GreetingNavKey.Splash> {
-            SplashScreen(currentTheme = currentTheme,
+            SplashScreen(currentTheme = state.theme,
                 onFinish = { navigator.replace(GreetingNavKey.Main) })
         }
         entry<GreetingNavKey.Main> {
-            MainScreen(viewModel = viewModel,
-                onReplaySplash = { navigator.replace(GreetingNavKey.Splash) })
+            MainScreen(viewModel = viewModel)
         }
     }
 )
 ```
 
 - Splash 完成/跳过 → `replace(Main)`（栈内只剩 Main，系统返回键直接退出应用）。
-- 设置页"重播启动页" → `replace(Splash)`。
-- 侧边栏打开时的返回键由 `MainScreen` 内的 `BackHandler(enabled = isSidebarOpen)` 优先拦截（先收侧边栏，再交给导航）。
+- 侧边栏打开时的返回键由 `MainScreen` 内的 `BackHandler(enabled = isSidebarOpen)` 优先拦截（先收侧边栏，再交给导航）；设置层级内同样注册 `BackHandler` 逐级回退。
 
 ---
 
@@ -220,7 +223,7 @@ val animatedBg by animateColorAsState(
 )
 ```
 
-主题家族识别采用 `themeId` 前缀匹配（`editorial/geist/linear/shadcn/notion`，兜底 `Braun`），在 CanvasScreen 中按需使用；**新增主题家族时记得同步前缀分支**。
+主题家族识别与目录集中在 `ThemeResolver`（core:ui）：`familyOf(themeId)`（去除 `-light`/`-dark` 后缀）、`familyDisplayNameOf`（家族显示名唯一来源）、`families`（`PaletteFamily(key, light, dark)` 有序目录，画布快切条与设置页调色板列表共用）。**新增家族只需：① `families` 加一条 ② `familyDisplayNameOf` 加一个分支**（设置页如需本地化名称/副标题再加一对字符串资源），两个选择器会自动出现新家族，无需再改屏幕代码。
 
 ### 5.4 共享剪贴板工具
 
@@ -236,23 +239,23 @@ val animatedBg by animateColorAsState(
 
 ```kotlin
 Column(modifier = modifier.fillMaxWidth().background(currentTheme.background).statusBarsPadding()) {
-    Row(modifier = Modifier.fillMaxWidth().height(47.dp).padding(horizontal = 10.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().height(TopNavBarHeight).padding(horizontal = 10.dp)) {
         // 仅侧边栏开关(28dp 点击区域 + 28dp 纯 Menu 图标，无底色/边框/按压水波纹，testTag = "top_nav_sidebar_btn")
     }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(currentTheme.border)) // 1px 分割线
+    Box(Modifier.fillMaxWidth().height(TopNavDividerHeight).background(currentTheme.border)) // 1px 分割线
 }
 ```
 
 顶栏为**双形态**设计（`pageTitle` 参数驱动）：
 
 - **主界面形态**（`settingsLevel == NONE`）：仅左侧侧边栏开关按钮（28dp 纯 Menu 图标，无底色/边框/水波纹，`testTag = "top_nav_sidebar_btn"`）。
-- **子页面形态**（设置流程内）：左侧按钮自动变为**返回键**（ArrowBack，`testTag = "top_nav_back_btn"`，点击 → `backSettings()`），**居中显示当前页面标题**——菜单页显示 "Settings"，外观设置页显示对应菜单名 "Appearance & Themes"。
+- **子页面形态**（设置流程内）：左侧按钮自动变为**返回键**（ArrowBack，`testTag = "top_nav_back_btn"`，点击 → `GreetingAction.SettingsBackPressed`），**居中显示当前页面标题**——菜单页显示 "Settings"，外观/字体/字号/语言页显示对应菜单名。
 
 两种形态均保留底部 1px 分割线。原 Monogram 徽标、HELLO 标题、呼吸脉冲药丸、右侧主题家族徽标均已移除；设置入口在侧边栏底部，主题切换在设置页/画布快切条完成。
 
 **粗细调整**：
-- **整条栏高度**：改 `Row` 的 `height(47.dp)`（当前值，两种形态各一处需保持一致）——细：36~40dp；粗：56/64dp（Material 3 标准），同步微调内部按钮（28dp）。
-- **分割线粗细**：改底部 `Box` 的 `height(1.dp)`——发丝线 0.5dp、加粗 2dp、整块删除则无分割线。
+- **整条栏高度**：改常量 `TopNavBarHeight`（当前 47.dp，两种形态共用一处定义）——细：36~40dp；粗：56/64dp（Material 3 标准），同步微调内部按钮（28dp）。
+- **分割线粗细**：改常量 `TopNavDividerHeight`（当前 1.dp）——发丝线 0.5dp、加粗 2dp、整块删除则无分割线。
 
 `.statusBarsPadding()` 保证状态栏避让。设置页 `SettingsScreen` 已移除自带的页面级顶栏（含返回按钮），全应用顶部区域统一由 `ProductionTopNavBar` 管理。
 
@@ -260,25 +263,26 @@ Column(modifier = modifier.fillMaxWidth().background(currentTheme.background).st
 
 ## 7. 推拽式侧边栏 (Push Canvas Sidebar) 动画架构
 
-侧边栏展开时**主画布被同步推开**（非浮动蒙层），实现位于 `MainScreen.kt`。
+侧边栏展开时**主画布被同步推开**（非浮动蒙层），实现位于 `components/SidebarDrawer.kt`（`MainScreen` 负责组装并喂入状态）。
 
 ### 7.1 双层平移动画
 
 ```kotlin
-val sidebarWidth = 295.dp
-val luxuryPushEasing = remember { CubicBezierEasing(0.16f, 1f, 0.3f, 1f) } // 豪华减速曲线
+val SidebarWidth = 295.dp
+val SidebarDrawerEasing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f) // 豪华减速曲线
 
-// 主画布位移 0→295dp；侧边栏位移 -295dp→0；均为 320ms
-val pushOffset by animateDpAsState(if (isSidebarOpen) sidebarWidth else 0.dp, tween(320, easing = luxuryPushEasing))
-val sidebarOffset by animateDpAsState(if (isSidebarOpen) 0.dp else -sidebarWidth, tween(320, easing = luxuryPushEasing))
-// 主画布圆角 0→18dp、投影 0→14dp 同步动画
+// 以进度 p（0→1，320ms）驱动：主画布位移 0→295dp；侧边栏位移 -295dp→0
+val pushOffset = SidebarWidth * p
+val panelOffset = -SidebarWidth * (1f - p)
+// 主画布圆角 0→18dp、投影同步动画
 ```
 
 ### 7.2 层级结构
 
-1. 底层：295dp 位移槽内的 `AppSidebarContent`（内容自身声明 `width(300.dp)`，5dp 溢出被裁剪——调槽宽时两处需同步）。
+1. 底层：295dp 位移槽内的侧边栏内容（内容宽度 = `SidebarWidth`，无溢出裁剪——调整槽宽只需改这一处常量）。
 2. 表层：被推开的主画布（`offset(pushOffset)` + 动态圆角/阴影/1dp 描边）。
-3. 收回机制（3 种）：① **系统返回键/手势**（`BackHandler(enabled = isSidebarOpen)` 优先拦截，只收侧边栏不退出页面）；② **点击侧边栏以外的区域**（全透明拦截层，`testTag = "sidebar_outside_dismiss"`，无视觉遮罩；拦截层通过 `padding(start = sidebarWidth)` 在几何上**只覆盖侧边栏右侧区域**——若做成全屏，点在侧边栏非交互区域的事件未被消费时会穿透到拦截层导致误收回）；③ **点击底部设置入口**（打开设置菜单页后自动收回）。层级顺序：主画布（底）→ 外部点击拦截层（中，仅展开时存在）→ 侧边栏（顶）。
+3. 打开方式：顶栏菜单按钮，或**屏幕左缘 32dp 边缘滑出**（`SidebarEdgeZone`；底栏分页滑动会避开该区域）。
+4. 收回机制（3 种）：① **系统返回键/手势**（`BackHandler(enabled = isSidebarOpen)` 优先拦截，只收侧边栏不退出页面）；② **点击侧边栏以外的区域**（全透明拦截层，`testTag = "sidebar_outside_dismiss"`，无视觉遮罩；拦截层通过 `padding(start = SidebarWidth)` 在几何上**只覆盖侧边栏右侧区域**——若做成全屏，点在侧边栏非交互区域的事件未被消费时会穿透到拦截层导致误收回）；③ **点击底部设置入口**（打开设置菜单页后自动收回）。层级顺序：主画布（底）→ 外部点击拦截层（中，仅展开时存在）→ 侧边栏（顶）。
 
 ### 7.3 侧边栏内容（AppSidebarContent）
 
@@ -288,7 +292,7 @@ val sidebarOffset by animateDpAsState(if (isSidebarOpen) 0.dp else -sidebarWidth
 
 ## 8. 底部导航栏 (BottomNavBar)
 
-`components/BottomNavBar.kt`（`ProductionBottomNavBar`）：4 标签（CANVAS/TYPOGRAPHY/TOKENS/SETTINGS），激活态为微胶囊背景 + 颜色过渡，`.navigationBarsPadding()` 避让手势条。选中回调在 `MainScreen` 中同时关闭侧边栏并退出设置流程（`exitSettings()`，防御性保留）。**底部导航栏仅在主界面（`settingsLevel == NONE`）显示**——设置菜单页与设置页不接入底部导航；**第 4 标签（SETTINGS）内容区为空白占位**，设置功能已整体迁移至侧边栏设置流程。
+`components/BottomNavBar.kt`（`ProductionBottomNavBar`）：4 标签（CANVAS/TYPOGRAPHY/TOKENS/SETTINGS），激活态为微胶囊背景 + 颜色过渡，`.navigationBarsPadding()` 避让手势条。内容区由底栏自身托管为可滑动分页：**左右滑动可切换标签**（320ms 分页动画；快滑阈值 180px/s，慢拖阈值 28% 页宽），侧栏展开时滑动禁用，左缘 32dp（`SidebarEdgeZone`）保留给侧栏滑出。选中回调在 `MainScreen` 中同时退出设置流程（`SettingsExited`，防御性保留）。**底部导航栏仅在主界面（`settingsLevel == NONE`）显示**——设置菜单页与各设置子页不接入底部导航；**第 4 标签（SETTINGS）内容区为空白占位**，设置功能已整体迁移至侧边栏设置流程。
 
 ---
 
@@ -310,8 +314,8 @@ val sidebarOffset by animateDpAsState(if (isSidebarOpen) 0.dp else -sidebarWidth
 
 ### 10.1 区块构成
 
-1. **遥测头**：`DESIGN TOKENS` 徽标 + 模拟延迟药丸（`renderLatencyMs`，3~5ms 随机，主题变化时刷新）+ "Inspect CSS" 快捷入口。
-2. **预设快切条**：6 家族药丸（明暗随当前主题），点击 → `GreetingAction.ThemeSelected(targetVariant)`（持久化）。
+1. **遥测头**：`DESIGN TOKENS` 徽标 + 真实延迟药丸（`renderLatencyMs`：`System.nanoTime()` + `withFrameNanos` 实测组合到帧延迟，主题变化时刷新）+ "Inspect CSS" 快捷入口。
+2. **预设快切条**：6 家族药丸（明暗随当前主题），目录来自 `ThemeResolver.families`（见 5.3），点击 → `GreetingAction.ThemeSelected(targetVariant)`（持久化）。
 3. **英雄卡片**：6 组策展语录（`GreetingRepository.heroQuotes`，轻斜体 + 粗体双段）循环，点按弹簧缩放 0.985f（`Spring.DampingRatioMediumBouncy`），tap → `GreetingAction.NextGreetingClicked`；自定义问候激活时优先显示 `customGreeting`。
 4. **交错入场动画**：卡片/眉题/双段文字/分割线/说明文字按 60/120/180/300/420/480ms 延迟级联，650~750ms `CubicBezierEasing(0.16,1,0.3,1)`。
 5. **自定义问候编辑器**：`AnimatedVisibility` 展开双 `BasicTextField`（part1 衬线斜体 / part2 无衬线粗体），输入即 `GreetingAction.CustomGreetingChanged` 实时上屏。
@@ -328,20 +332,33 @@ val sidebarOffset by animateDpAsState(if (isSidebarOpen) 0.dp else -sidebarWidth
 ### 11.2 令牌面板（TokensScreen）
 令牌搜索过滤 + 色卡矩阵（点击复制 Hex，Toast 反馈）+ 令牌化组件演练场 + 审查器入口。
 
-### 11.3 设置流程（菜单页 + 外观设置页）
+### 11.3 设置流程（菜单页 + 外观/字体/字号/语言子页）
 
-设置采用**内容区层级导航**（遵循官方 Scaffold 模式：`topBar` 定义在 Scaffold 层持久存在，仅 `content` 区切换页面，全程不新增顶栏）。`GreetingViewModel.settingsLevel` 三级状态机：
+设置采用**内容区层级导航**（遵循官方 Scaffold 模式：`topBar` 定义在 Scaffold 层持久存在，仅 `content` 区切换页面，全程不新增顶栏）。`GreetingViewModel.settingsLevel` 六级状态机：
 
 ```
 NONE（正常标签）→ MENU（设置菜单列表）→ PAGE（外观设置页）
+                                   ├─→ FONT（字体页）→ FONT_SIZE（字号页）
+                                   └─→ LANGUAGE（语言页）
 ```
 
-- **入口**：侧边栏底部 "Settings" → `openSettingsMenu()`。
-- **菜单页（SettingsMenuScreen）**：当前唯一入口 **"Appearance & Themes"**（外观与主题：明暗模式、调色板、排版与 CSS 令牌），点击 → `openAppearanceSettings()`。
-- **外观设置页（SettingsScreen）**：明暗双卡选择器、12 调色板列表（当前选中高亮）、3 排版引擎、CSS 导出（复制 `toCssString()`）、审查器入口、系统信息与**启动页重播**（经 `onReplaySplash` → Nav3 `replace(Splash)`）。
-- **返回**：系统返回键/手势逐级回退（`BackHandler` → `backSettings()`：PAGE→MENU→NONE）。设置层级内**不显示底部导航栏**（Scaffold `bottomBar` 仅在 NONE 层级渲染），页面视觉只保留全局顶栏 + 内容区。
+- **入口**：侧边栏底部 "Settings" → `GreetingAction.SettingsMenuOpened`。
+- **菜单页（SettingsMenuScreen）**：三个入口——**Appearance & Themes**（外观与主题）、**Font**（字体：字型引擎与字体大小）、**Language**（应用显示语言）。
+- **外观设置页（SettingsScreen）**：明暗/跟随系统三卡选择器 + 12 调色板列表（家族目录来自 `ThemeResolver.families`，当前选中高亮）。
+- **字体页（FontScreen）**：3 排版引擎（Serif/Sans/Mono）、字号入口、自定义字体管理（见 11.4）。
+- **字号页（FontSizeScreen）**：全局字体缩放滑块 + 实时预览，保存 → `GreetingAction.FontScaleSaved`（持久化；`MainActivity` 通过 `LocalDensity` 的 `fontScale` 全局生效）。
+- **语言页（LanguageScreen）**：跟随系统 / English / 中文，经 `AppCompatDelegate.setApplicationLocales` 持久化并即时重建 Activity（`locales_config.xml` 声明 en、zh-CN，支持 Android 13+ 系统级应用语言列表）。
+- **返回**：系统返回键/手势逐级回退（`BackHandler` → `GreetingAction.SettingsBackPressed`：FONT_SIZE→FONT→MENU、PAGE/LANGUAGE→MENU→NONE）。设置层级内**不显示底部导航栏**（Scaffold `bottomBar` 仅在 NONE 层级渲染），页面视觉只保留全局顶栏 + 内容区。
 
-### 11.4 CSS 变量审查器（CssVariableInspectorSheet）
+### 11.4 自定义字体系统（fonts/）
+
+- **预设库（PresetFontCatalog）**：3 款字体（Source Han Serif SC / LXGW WenKai / JetBrains Mono）托管于 GitHub Releases（`releases/latest/download/<file>` HTTPS 直链），每条记录含 `sha256` 校验和。
+- **下载（CustomFontRepository.downloadPreset）**：IO 调度器流式写入 `.part` 临时文件，完成后做 **SHA-256 校验**，不匹配即删除拒绝安装；校验通过原子改名入库。下载进度经 `downloadProgress: StateFlow` 实时回流 UI。
+- **导入（importFont）**：支持用户选择本地 .ttf/.otf，文件名规范化（非法字符→`_`）并以 `upload_` 前缀落盘，自动去重加序号。
+- **热路径零磁盘 IO**：`installedIds` 内存快照（@Volatile）+ `fontFamilyCache`（ConcurrentHashMap）回答成员与 FontFamily 查询；`installedVersion` 变更触发重新扫描自愈。
+- 选中自定义字体会清空系统排版引擎选择（互斥），反之亦然；选择持久化于 `activeCustomFontId`。
+
+### 11.5 CSS 变量审查器（CssVariableInspectorSheet）
 全局 `ModalBottomSheet`，双标签：
 - **CSS Code**：完整 `:root` 导出 + 复制按钮（1.8s 成功态）。
 - **Tokens**：9 个预设色样实时覆盖 `--primary`（`onCustomPrimarySelected` → `GreetingAction.PrimaryColorOverridden`，瞬态不持久化）。
@@ -375,29 +392,33 @@ gradle :app:testDebugUnitTest     # 单元测试 + 截图测试
 
 | 参数 | 值 | 位置 |
 | :--- | :--- | :--- |
-| 顶栏内容行高 | 47dp | TopNavBar |
-| 侧边栏槽宽 / 内容宽 | 295dp / 300dp | MainScreen / SidebarDrawer |
-| 推拽动画 | 320ms，CubicBezier(0.16,1,0.3,1) | MainScreen |
-| 主画布推开圆角 / 投影 | 18dp / 14dp | MainScreen |
+| 顶栏内容行高 | 47dp（`TopNavBarHeight`） | TopNavBar |
+| 侧边栏槽宽 / 内容宽 | 295dp / 295dp（同一常量 `SidebarWidth`） | SidebarDrawer |
+| 侧边栏边缘滑出区 | 32dp（`SidebarEdgeZone`） | SidebarDrawer |
+| 推拽动画 | 320ms，CubicBezier(0.16,1,0.3,1) | SidebarDrawer |
+| 底栏分页滑动 | 320ms；快滑 180px/s，慢拖 28% 页宽 | BottomNavBar |
 | 背景色过渡 | 280ms FastOutSlowIn | MainScreen |
 | 英雄卡片按压 | 0.985f 弹簧 | CanvasScreen |
 | 入场级联延迟 | 60/120/180/300/420/480ms | CanvasScreen |
-| 打字机 | 起始 350ms，行间 400ms，收尾 850ms | SplashScreen |
+| 打字机 | 起始 350ms，逐字 28ms（末句 42ms），行间 400ms，收尾 850ms | SplashScreen |
 | 光标 / 光环 / 自转环 | 480ms / 1800ms / 12000ms | SplashScreen |
-| 字号 / 字距滑块 | 24~64sp / -2.0~4.0sp | TypeStudioScreen |
+| 字号 / 字距滑块 | 24~64sp（默认 42）/ -2.0~4.0sp（默认 -0.5） | TypeStudioScreen |
 | 复制成功态 | 1.8s | CanvasScreen / 审查器 |
-| 偏好数据库 | `minimal-hello.db`，user_preferences 单行表 | core:database |
+| 偏好存储 | Preferences DataStore（`user_preferences`） | core:data |
+| 结构化数据库 | `minimal-hello.db`（预留，含 1→4 迁移链，无 DAO） | core:database |
+| 字体下载源 | GitHub Releases 直链 + SHA-256 校验 | feature:greeting:impl/fonts |
 
 ---
 
 ## 14. 已知局限与工程问题
 
-1. **未使用的依赖模块**：`core:network` 为空契约占位（Retrofit/OkHttp 已接入 Hilt 但无端点）。
-2. **主题家族前缀兜底**：`else -> "Braun"` 分支在新增家族时可能误判，需同步维护。
-3. **侧边栏 5dp 裁剪**：槽宽 295dp 与内容 300dp 不同步，调整时两处一起改。
-4. **截图基准**：`tokens.png` 基准图需用 `-Proborazzi.test.record=true` 生成后入库。
+1. **网络层为占位**：`core:network` 栈已就绪（Retrofit + kotlinx.serialization + Hilt），但 baseUrl 是 `https://api.example.com/` 占位，无真实端点；`fetchRemoteHeroQuotes()` 目前只会走失败降级路径。
+2. **Room 空转**：`core:database` 仅为满足 Room 至少一个实体的要求保留 legacy 表，无 DAO；短期不接结构化数据时可考虑整体摘除以省 KSP 与包体积。
+3. **家族兜底分支**：`ThemeResolver.familyDisplayNameOf` 的 `else -> "Braun"` 兜底意味着新增家族必须同步加分支（家族目录已集中于 `families` + `familyDisplayNameOf` 两处）。
+4. **截图基准**：`tokens.png` 基准图需用 `-Proborazzi.test.record=true` 生成后入库，否则 `testDebugUnitTest` 校验失败。
 5. **debug 密钥库**：`debug.keystore` 被 gitignore，新环境需按 README 用 keytool 生成。
+6. **release 签名依赖环境**：`KEYSTORE_PATH` / `STORE_PASSWORD` / `KEY_PASSWORD` 三个环境变量（或根目录 `my-upload-key.jks`）必须存在，否则 `assembleRelease` 失败；CI/新机器需先注入。
 
 ---
 
-> 本文档与多模块化重构后的源码（提交 `0.2 多模块化重构`）逐项核验一致。后续修改组件参数时，请同步更新第 13 节速查表。
+> 本文档已按当前源码逐项核验（核验日期：2026-09-11），覆盖多模块化重构后的全部演进：偏好存储 Room→DataStore 迁移、序列化 Moshi→kotlinx.serialization、自定义字体系统、设置流程六级状态机、主题家族目录单源化（`ThemeResolver.families`）、侧栏/底栏手势体系。后续修改组件参数时，请同步更新第 13 节速查表。
