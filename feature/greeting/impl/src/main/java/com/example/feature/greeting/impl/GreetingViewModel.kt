@@ -40,17 +40,14 @@ data class CustomGreetingState(
 )
 
 /**
- * Content-level settings navigation inside the main Scaffold content area
- * (the global top nav bar stays visible on every level):
- * NONE (normal tabs) -> MENU (settings menu list) -> PAGE (appearance settings).
- */
-enum class SettingsLevel { NONE, MENU, PAGE, LANGUAGE, FONT, FONT_SIZE }
-
-/**
  * Single immutable UI state for the greeting feature (UDF).
  *
  * [theme] and [activeContentFont] are derived from the raw preference fields by the
  * ViewModel on every state update; all other fields are set directly by actions.
+ *
+ * Screen-to-screen navigation (settings flow) is NOT part of this state — it
+ * lives on the Navigation 3 back stack, which handles system back, predictive
+ * back and process-death restore.
  */
 data class GreetingState(
     // Raw preference inputs
@@ -65,7 +62,6 @@ data class GreetingState(
     val currentTab: NavigationTab,
     val isSidebarOpen: Boolean,
     val isInspectorVisible: Boolean,
-    val settingsLevel: SettingsLevel,
     // Typography
     val typographyChoice: AppTypographyChoice,
     val fontScale: Float,
@@ -114,14 +110,6 @@ sealed interface GreetingAction {
     data class FontDeleteClicked(val fontId: String) : GreetingAction
     data class FontImportRequested(val uri: Uri, val fallbackName: String) : GreetingAction
     data class FontScaleSaved(val scale: Float) : GreetingAction
-
-    data object SettingsMenuOpened : GreetingAction
-    data object AppearanceSettingsOpened : GreetingAction
-    data object LanguageSettingsOpened : GreetingAction
-    data object FontSettingsOpened : GreetingAction
-    data object FontSizeSettingsOpened : GreetingAction
-    data object SettingsBackPressed : GreetingAction
-    data object SettingsExited : GreetingAction
 
     /**
      * Internal actions: results of asynchronous work posted back onto the action
@@ -194,7 +182,6 @@ class GreetingViewModel @Inject constructor(
             currentTab = NavigationTab.CANVAS,
             isSidebarOpen = false,
             isInspectorVisible = false,
-            settingsLevel = SettingsLevel.NONE,
             typographyChoice = AppTypographyChoice.EDITORIAL,
             fontScale = UserPreferences.DEFAULT.fontScale,
             activeCustomFontId = UserPreferences.DEFAULT.activeCustomFontId,
@@ -268,26 +255,6 @@ class GreetingViewModel @Inject constructor(
             is GreetingAction.FontDeleteClicked -> handleFontDeleteClicked(action)
             is GreetingAction.FontImportRequested -> handleFontImportRequested(action)
             is GreetingAction.FontScaleSaved -> handleFontScaleSaved(action)
-
-            GreetingAction.SettingsMenuOpened -> {
-                updateState { copy(settingsLevel = SettingsLevel.MENU) }
-            }
-            GreetingAction.AppearanceSettingsOpened -> {
-                updateState { copy(settingsLevel = SettingsLevel.PAGE) }
-            }
-            GreetingAction.LanguageSettingsOpened -> {
-                updateState { copy(settingsLevel = SettingsLevel.LANGUAGE) }
-            }
-            GreetingAction.FontSettingsOpened -> {
-                updateState { copy(settingsLevel = SettingsLevel.FONT) }
-            }
-            GreetingAction.FontSizeSettingsOpened -> {
-                updateState { copy(settingsLevel = SettingsLevel.FONT_SIZE) }
-            }
-            GreetingAction.SettingsBackPressed -> handleSettingsBackPressed()
-            GreetingAction.SettingsExited -> {
-                updateState { copy(settingsLevel = SettingsLevel.NONE) }
-            }
 
             is GreetingAction.Internal.PreferencesReceived -> handlePreferencesReceived(action)
             is GreetingAction.Internal.InstalledFontsReceived -> {
@@ -370,24 +337,6 @@ class GreetingViewModel @Inject constructor(
         viewModelScope.launch { userPreferencesRepository.updateFontScale(action.scale) }
     }
 
-    /** Steps one settings level back (PAGE -> MENU -> NONE). */
-    private fun handleSettingsBackPressed() {
-        updateState {
-            copy(
-                settingsLevel = when (settingsLevel) {
-                    SettingsLevel.PAGE,
-                    SettingsLevel.LANGUAGE,
-                    SettingsLevel.FONT,
-                    -> SettingsLevel.MENU
-                    SettingsLevel.FONT_SIZE -> SettingsLevel.FONT
-                    SettingsLevel.MENU,
-                    SettingsLevel.NONE,
-                    -> SettingsLevel.NONE
-                },
-            )
-        }
-    }
-
     // endregion
 
     // region Internal action handlers
@@ -403,9 +352,9 @@ class GreetingViewModel @Inject constructor(
                     ?: AppTypographyChoice.EDITORIAL,
                 fontScale = prefs.fontScale,
                 activeCustomFontId = prefs.activeCustomFontId,
-                // Navigation chrome state (currentTab / settingsLevel / isSidebarOpen) is
-                // intentionally NOT restored here — it is session-transient and always
-                // starts fresh (splash -> default tab) after process death.
+                // Navigation chrome state (currentTab / isSidebarOpen) is
+                // intentionally NOT restored here — it is session-transient and
+                // always starts fresh (default tab) after process death.
             )
         }
     }
@@ -439,11 +388,10 @@ class GreetingViewModel @Inject constructor(
      * Updates [mutableStateFlow] and re-derives the derived fields ([GreetingState.theme],
      * [GreetingState.activeContentFont]) so they always stay consistent with the raw inputs.
      *
-     * Note: navigation chrome state (currentTab / settingsLevel / isSidebarOpen) is
-     * deliberately NOT persisted to DataStore. It is transient per-session UI position —
-     * persisting it caused a restore/write feedback loop (sidebar/settings flicker) and
-     * wrongly dropped the user back onto the previous screen after process death instead
-     * of the splash screen.
+     * Note: navigation chrome state (currentTab / isSidebarOpen) is deliberately NOT
+     * persisted to DataStore — it is transient per-session UI position. The settings
+     * flow is not tracked here at all: it lives on the Navigation 3 back stack, which
+     * is serialized and restored across process death by the navigation library.
      */
     private inline fun updateState(block: GreetingState.() -> GreetingState) {
         mutableStateFlow.update { current ->

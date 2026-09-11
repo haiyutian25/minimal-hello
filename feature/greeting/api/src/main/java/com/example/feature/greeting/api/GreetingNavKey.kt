@@ -19,4 +19,24 @@ sealed interface GreetingNavKey : NavKey {
     /** Main canvas experience (sidebar + 4-tab scaffold). */
     @Serializable
     data object Main : GreetingNavKey
+
+    /** Settings menu list (entry of the settings flow). */
+    @Serializable
+    data object SettingsMenu : GreetingNavKey
+
+    /** Appearance settings (color mode + palette presets). */
+    @Serializable
+    data object AppearanceSettings : GreetingNavKey
+
+    /** Language settings. */
+    @Serializable
+    data object LanguageSettings : GreetingNavKey
+
+    /** Font settings (typography engine + custom fonts). */
+    @Serializable
+    data object FontSettings : GreetingNavKey
+
+    /** Font-size adjustment. */
+    @Serializable
+    data object FontSizeSettings : GreetingNavKey
 }

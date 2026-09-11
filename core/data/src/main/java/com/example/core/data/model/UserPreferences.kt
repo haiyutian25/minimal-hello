@@ -4,7 +4,7 @@ package com.example.core.data.model
  * Domain model for persisted UI preferences (theme, typography, language, color mode,
  * font scale, active custom font).
  *
- * Note: navigation chrome state (currentTab / settingsLevel / isSidebarOpen) is NOT
+ * Note: navigation chrome state (currentTab / isSidebarOpen) is NOT
  * part of preferences — it is session-transient UI position and always starts fresh
  * after process death.
  */
