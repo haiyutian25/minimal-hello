@@ -81,7 +81,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
-import com.example.core.ui.theme.ProductionPalettes
 import com.example.core.ui.theme.ThemeResolver
 import com.example.core.ui.theme.isBraun
 import com.example.feature.greeting.impl.R
@@ -143,8 +142,8 @@ fun CanvasScreen(
         renderLatencyMs = (System.nanoTime() - startNanos) / 1_000_000
     }
 
-    // Palette family display name (single source: ThemeResolver in core:ui).
-    val currentPresetBase = ThemeResolver.familyDisplayNameOf(currentTheme.themeId)
+    // Current palette family key (single source: ThemeResolver in core:ui).
+    val currentFamilyKey = ThemeResolver.familyOf(currentTheme.themeId)
 
     Column(
         modifier = modifier
@@ -230,18 +229,11 @@ fun CanvasScreen(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            val presets = listOf(
-                Triple("Editorial", ProductionPalettes.EditorialLight, ProductionPalettes.EditorialDark),
-                Triple("Geist", ProductionPalettes.GeistLight, ProductionPalettes.GeistDark),
-                Triple("Linear", ProductionPalettes.LinearLight, ProductionPalettes.LinearDark),
-                Triple("Shadcn", ProductionPalettes.ShadcnZincLight, ProductionPalettes.ShadcnZincDark),
-                Triple("Notion", ProductionPalettes.NotionWarmLight, ProductionPalettes.NotionWarmDark),
-                Triple("Braun", ProductionPalettes.DieterRamsLight, ProductionPalettes.DieterRamsDark)
-            )
-
-            presets.forEach { (name, lightVariant, darkVariant) ->
-                val isSelected = currentPresetBase == name
-                val targetVariant = if (currentTheme.isDark) darkVariant else lightVariant
+            // Family catalog comes from ThemeResolver (core:ui) — the single
+            // source of truth; adding a family there automatically adds a pill.
+            ThemeResolver.families.forEach { family ->
+                val isSelected = currentFamilyKey == family.key
+                val targetVariant = family.variant(currentTheme.isDark)
                 // Selected pill gets a clearly elevated surface: pure white in light
                 // mode, a lighter muted surface in dark mode (card sits too close to
                 // the unselected subtleSurface to read as selected there). Braun
@@ -255,7 +247,7 @@ fun CanvasScreen(
                 Button(
                     onClick = { viewModel.trySendAction(GreetingAction.ThemeSelected(targetVariant)) },
                     shape = RoundedCornerShape(currentTheme.radiusLg),
-                    testTag = "preset_pill_$name"
+                    testTag = "preset_pill_${family.key}"
                 ) {
                     Row(
                         modifier = Modifier
@@ -276,7 +268,7 @@ fun CanvasScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = name,
+                            text = family.displayName,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (isSelected) currentTheme.foreground else currentTheme.mutedForeground,

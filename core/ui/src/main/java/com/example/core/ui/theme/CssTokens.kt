@@ -416,6 +416,34 @@ object ThemeResolver {
         themeId.removeSuffix("-light").removeSuffix("-dark")
 
     /**
+     * A preset palette family: its stable [key] plus the light/dark variants.
+     * Single source of truth for family pickers (canvas quick-switcher,
+     * settings palette list) — adding a family is one entry in [families]
+     * plus one branch in [familyDisplayNameOf].
+     */
+    data class PaletteFamily(
+        val key: String,
+        val light: CssVariables,
+        val dark: CssVariables,
+    ) {
+        /** User-facing family name ("editorial" -> "Editorial"). */
+        val displayName: String get() = familyDisplayNameOf(key)
+
+        /** The variant matching [isDark]. */
+        fun variant(isDark: Boolean): CssVariables = if (isDark) dark else light
+    }
+
+    /** All preset families in picker display order. */
+    val families: List<PaletteFamily> = listOf(
+        PaletteFamily("editorial", ProductionPalettes.EditorialLight, ProductionPalettes.EditorialDark),
+        PaletteFamily("geist", ProductionPalettes.GeistLight, ProductionPalettes.GeistDark),
+        PaletteFamily("linear", ProductionPalettes.LinearLight, ProductionPalettes.LinearDark),
+        PaletteFamily("shadcn", ProductionPalettes.ShadcnZincLight, ProductionPalettes.ShadcnZincDark),
+        PaletteFamily("notion", ProductionPalettes.NotionWarmLight, ProductionPalettes.NotionWarmDark),
+        PaletteFamily("dieter-rams", ProductionPalettes.DieterRamsLight, ProductionPalettes.DieterRamsDark),
+    )
+
+    /**
      * User-facing display name for a palette family ("editorial-light" -> "Editorial").
      * Single source of truth — adding a family only requires one new entry here.
      */
@@ -431,6 +459,6 @@ object ThemeResolver {
 
     /** Resolves a palette family to its light or dark variant. */
     fun resolveFamily(family: String, isDark: Boolean): CssVariables =
-        ProductionPalettes.AllPresets.firstOrNull { familyOf(it.themeId) == family && it.isDark == isDark }
+        families.firstOrNull { it.key == family }?.variant(isDark)
             ?: ProductionPalettes.EditorialLight
 }

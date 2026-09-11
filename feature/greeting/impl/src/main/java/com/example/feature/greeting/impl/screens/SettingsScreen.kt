@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.data.model.ColorMode
 import com.example.core.ui.theme.CssVariables
-import com.example.core.ui.theme.ProductionPalettes
 import com.example.core.ui.theme.ThemeResolver
 import com.example.core.ui.theme.isBraun
 import com.example.feature.greeting.impl.R
@@ -51,12 +50,20 @@ import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.CardButton
 
 private data class PaletteEntry(
-    val baseKey: String,
+    val family: ThemeResolver.PaletteFamily,
     @StringRes val nameRes: Int,
-    @StringRes val subtitleRes: Int,
-    val light: CssVariables,
-    val dark: CssVariables
+    @StringRes val subtitleRes: Int
 )
+
+/** Localized name/subtitle resources per palette family (presentation mapping). */
+private fun paletteStrings(familyKey: String): Pair<Int, Int> = when (familyKey) {
+    "editorial" -> R.string.settings_palette_editorial_name to R.string.settings_palette_editorial_subtitle
+    "geist" -> R.string.settings_palette_geist_name to R.string.settings_palette_geist_subtitle
+    "linear" -> R.string.settings_palette_linear_name to R.string.settings_palette_linear_subtitle
+    "shadcn" -> R.string.settings_palette_shadcn_name to R.string.settings_palette_shadcn_subtitle
+    "notion" -> R.string.settings_palette_notion_name to R.string.settings_palette_notion_subtitle
+    else -> R.string.settings_palette_braun_name to R.string.settings_palette_braun_subtitle
+}
 
 @Composable
 fun SettingsScreen(
@@ -66,17 +73,15 @@ fun SettingsScreen(
     onColorModeChange: (ColorMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Identify current palette base (single source: ThemeResolver in core:ui).
-    val currentPresetBase = ThemeResolver.familyDisplayNameOf(currentTheme.themeId)
+    // Identify current palette family (single source: ThemeResolver in core:ui).
+    val currentFamilyKey = ThemeResolver.familyOf(currentTheme.themeId)
 
-    val paletteList = listOf(
-        PaletteEntry("Editorial", R.string.settings_palette_editorial_name, R.string.settings_palette_editorial_subtitle, ProductionPalettes.EditorialLight, ProductionPalettes.EditorialDark),
-        PaletteEntry("Geist", R.string.settings_palette_geist_name, R.string.settings_palette_geist_subtitle, ProductionPalettes.GeistLight, ProductionPalettes.GeistDark),
-        PaletteEntry("Linear", R.string.settings_palette_linear_name, R.string.settings_palette_linear_subtitle, ProductionPalettes.LinearLight, ProductionPalettes.LinearDark),
-        PaletteEntry("Shadcn", R.string.settings_palette_shadcn_name, R.string.settings_palette_shadcn_subtitle, ProductionPalettes.ShadcnZincLight, ProductionPalettes.ShadcnZincDark),
-        PaletteEntry("Notion", R.string.settings_palette_notion_name, R.string.settings_palette_notion_subtitle, ProductionPalettes.NotionWarmLight, ProductionPalettes.NotionWarmDark),
-        PaletteEntry("Braun", R.string.settings_palette_braun_name, R.string.settings_palette_braun_subtitle, ProductionPalettes.DieterRamsLight, ProductionPalettes.DieterRamsDark)
-    )
+    // Family order and variants come from ThemeResolver.families; this screen
+    // only contributes the localized name/subtitle strings.
+    val paletteList = ThemeResolver.families.map { family ->
+        val (nameRes, subtitleRes) = paletteStrings(family.key)
+        PaletteEntry(family, nameRes, subtitleRes)
+    }
 
     Column(
         modifier = modifier
@@ -155,13 +160,13 @@ fun SettingsScreen(
                     .border(1.dp, currentTheme.border, RoundedCornerShape(currentTheme.radiusLg))
             ) {
                 paletteList.forEachIndexed { index, entry ->
-                    val isSelected = currentPresetBase == entry.baseKey
-                    val targetTheme = if (currentTheme.isDark) entry.dark else entry.light
+                    val isSelected = currentFamilyKey == entry.family.key
+                    val targetTheme = entry.family.variant(currentTheme.isDark)
 
                     Button(
                         onClick = { onThemeChange(targetTheme) },
                         modifier = Modifier.fillMaxWidth(),
-                        testTag = "settings_palette_item_${entry.baseKey}"
+                        testTag = "settings_palette_item_${entry.family.key}"
                     ) {
                     Row(
                         modifier = Modifier

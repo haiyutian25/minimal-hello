@@ -34,7 +34,7 @@ minimal-hello/
 | Navigation 3 | 1.1.7 |
 | Hilt | 2.60.1 |
 | Room | 2.7.0 |
-| minSdk / targetSdk | 24 / 36 |
+| minSdk / targetSdk | 24 / 37 |
 | JDK | 21 (required by Robolectric SDK 36) |
 
 ## Run Locally
