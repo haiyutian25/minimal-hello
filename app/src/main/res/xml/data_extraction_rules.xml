@@ -1,19 +1,17 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 31+ cloud-backup / device-transfer rules. The custom_fonts directory is
+  excluded from BOTH: font payloads are large binaries (CJK presets ~25 MB
+  each, over the 25 MB per-app cloud quota, which would make cloud backup
+  silently fail) and are re-obtainable — presets re-download from GitHub
+  Releases with SHA-256 verification, uploaded fonts are re-imported by the
+  user. Everything else (DataStore preferences, Room db) stays backed up.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="file" path="custom_fonts" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="file" path="custom_fonts" />
     </device-transfer>
-    -->
 </data-extraction-rules>
