@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,12 +38,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -244,22 +241,28 @@ fun CssVariableInspectorSheet(
                         .height(InspectorCopyButtonHeight)
                         .testTag("copy_css_btn"),
                     shape = RoundedCornerShape(CssTheme.vars.radiusSm),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CssTheme.vars.primary,
-                        contentColor = CssTheme.vars.primaryForeground
-                    )
+                    currentTheme = CssTheme.vars,
+                    containerColor = CssTheme.vars.primary,
+                    // Filled look like the M3 button it replaces: no hairline outline.
+                    border = BorderStroke(0.dp, Color.Transparent),
+                    contentAlignment = Alignment.Center,
+                    fillWidth = true
                 ) {
-                    Icon(
-                        imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                        contentDescription = stringResource(R.string.inspector_cd_copy_css),
-                        modifier = Modifier.size(InspectorCopyIconSize)
-                    )
-                    Spacer(modifier = Modifier.width(InspectorCopyIconTextSpacing))
-                    Text(
-                        text = if (isCopied) stringResource(R.string.inspector_css_copied) else stringResource(R.string.inspector_copy_css_variables),
-                        fontWeight = FontWeight.Medium,
-                        fontSize = InspectorCopyFontSize
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.inspector_cd_copy_css),
+                            tint = CssTheme.vars.primaryForeground,
+                            modifier = Modifier.size(InspectorCopyIconSize)
+                        )
+                        Spacer(modifier = Modifier.width(InspectorCopyIconTextSpacing))
+                        Text(
+                            text = if (isCopied) stringResource(R.string.inspector_css_copied) else stringResource(R.string.inspector_copy_css_variables),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = InspectorCopyFontSize,
+                            color = CssTheme.vars.primaryForeground
+                        )
+                    }
                 }
             } else {
                 // Token Swatches and Live Accent Tuning
