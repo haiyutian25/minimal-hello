@@ -10,6 +10,7 @@ import com.example.core.data.model.PresetFont
 import com.example.core.data.model.PresetFontCatalog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,6 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -36,8 +39,24 @@ class CustomFontRepository @Inject constructor(
     private val dispatcherManager: DispatcherManager,
     private val fontRemoteDataSource: FontRemoteDataSource,
 ) {
-    private val fontsDir: File
-        get() = File(context.filesDir, DIR_NAME).apply { if (!exists()) mkdirs() }
+    /**
+     * On-disk font directory as a pure path handle: initialization performs no
+     * filesystem I/O (`Context.filesDir` is framework-cached and [File] is just
+     * a path). The directory itself is created at most once per process by
+     * [ensureFontsDir], which runs only on [DispatcherManager.io] — so the
+     * main-thread hot read path ([installedFontFile]) never stats the disk.
+     */
+    private val fontsDir: File = File(context.filesDir, DIR_NAME)
+
+    /** One-time guard for [ensureFontsDir]; IO-confined callers may run concurrently. */
+    private val dirCreated = AtomicBoolean(false)
+
+    /** Creates [fontsDir] if missing — at most one `mkdirs` syscall per process. */
+    private fun ensureFontsDir() {
+        if (dirCreated.compareAndSet(false, true)) {
+            fontsDir.mkdirs()
+        }
+    }
 
     /**
      * In-memory snapshot of the on-disk font file names, refreshed by every
@@ -63,6 +82,7 @@ class CustomFontRepository @Inject constructor(
 
     /** Scans the fonts directory and returns all installed fonts. */
     suspend fun installedFonts(): List<InstalledFont> = withContext(dispatcherManager.io) {
+        ensureFontsDir()
         val fonts = fontsDir.listFiles()
             .orEmpty()
             .filter { it.isFile && it.extension.lowercase() in FONT_EXTENSIONS }
@@ -86,17 +106,26 @@ class CustomFontRepository @Inject constructor(
 
     /**
      * Resolves an installed font ID to its on-disk [File], or null if missing.
-     * Membership is answered from the in-memory [installedIds] snapshot — no
-     * disk I/O on the caller thread. Until the first scan lands after process
-     * start the snapshot is empty; the [installedVersion] collection in the
-     * ViewModel triggers that scan and re-derives the font, so the choice
-     * self-heals within one frame sequence.
+     * Performs zero filesystem I/O on the caller thread: membership is answered
+     * from the in-memory [installedIds] snapshot and [fontsDir] is a cached pure
+     * path handle, so the returned [File] is mere path construction. Until the
+     * first scan lands after process start the snapshot is empty; the
+     * [installedVersion] collection in the ViewModel triggers that scan and
+     * re-derives the font, so the choice self-heals within one frame sequence.
      */
     fun installedFontFile(fontId: String): File? {
         if (fontId.isEmpty()) return null
         if (fontId !in installedIds.get()) return null
         return File(fontsDir, fontId)
     }
+
+    /**
+     * Serializes preset downloads. The UI can enqueue a second tap before the
+     * first download's progress reaches the state flow, and two concurrent
+     * writers on the same `.part` file would corrupt each other; a queued
+     * duplicate awaits the in-flight download and then sees the file installed.
+     */
+    private val downloadMutex = Mutex()
 
     /**
      * Downloads a preset font to disk, streaming progress to [downloadProgress].
@@ -106,39 +135,43 @@ class CustomFontRepository @Inject constructor(
      * a stale server copy) is rejected and never installed.
      */
     suspend fun downloadPreset(preset: PresetFont): Boolean = withContext(dispatcherManager.io) {
-        if (isInstalled(preset.fileName)) return@withContext true
-        val target = File(fontsDir, preset.fileName)
-        val partial = File(fontsDir, preset.fileName + PARTIAL_SUFFIX)
-        try {
-            setProgress(preset.fileName, 0f)
-            val verified = fontRemoteDataSource.downloadAndVerify(
-                url = preset.downloadUrl,
-                target = partial,
-                expectedSha256 = preset.sha256,
-                sizeHintBytes = preset.sizeBytes,
-            ) { progress -> setProgress(preset.fileName, progress) }
-            if (!verified) return@withContext fail(partial, preset.fileName)
-            if (!partial.renameTo(target)) {
-                partial.copyTo(target, overwrite = true)
-                partial.delete()
+        downloadMutex.withLock {
+            if (isInstalled(preset.fileName)) return@withContext true
+            ensureFontsDir()
+            val target = File(fontsDir, preset.fileName)
+            val partial = File(fontsDir, preset.fileName + PARTIAL_SUFFIX)
+            try {
+                setProgress(preset.fileName, 0f)
+                val verified = fontRemoteDataSource.downloadAndVerify(
+                    url = preset.downloadUrl,
+                    target = partial,
+                    expectedSha256 = preset.sha256,
+                    sizeHintBytes = preset.sizeBytes,
+                ) { progress -> setProgress(preset.fileName, progress) }
+                if (!verified) return@withContext fail(partial, preset.fileName)
+                if (!partial.renameTo(target)) {
+                    partial.copyTo(target, overwrite = true)
+                    partial.delete()
+                }
+                installedIds.updateAndGet { it + preset.fileName }
+                bumpInstalled()
+                // Clear the progress entry so a preset re-listed in the library (e.g.
+                // after deletion) shows the download button, not a stale 100% bar.
+                setProgress(preset.fileName, null)
+                true
+            } catch (e: CancellationException) {
+                fail(partial, preset.fileName)
+                throw e
+            } catch (e: Exception) {
+                fail(partial, preset.fileName)
             }
-            installedIds.updateAndGet { it + preset.fileName }
-            bumpInstalled()
-            // Clear the progress entry so a preset re-listed in the library (e.g.
-            // after deletion) shows the download button, not a stale 100% bar.
-            setProgress(preset.fileName, null)
-            true
-        } catch (e: CancellationException) {
-            fail(partial, preset.fileName)
-            throw e
-        } catch (e: Exception) {
-            fail(partial, preset.fileName)
         }
     }
 
     /** Copies a user-picked font file into the fonts directory. Returns its ID. */
     suspend fun importFont(uri: Uri, fallbackName: String): String? = withContext(dispatcherManager.io) {
         try {
+            ensureFontsDir()
             val originalName = queryDisplayName(uri) ?: fallbackName
             val extension = originalName.substringAfterLast('.', "").lowercase()
             if (extension !in FONT_EXTENSIONS) return@withContext null

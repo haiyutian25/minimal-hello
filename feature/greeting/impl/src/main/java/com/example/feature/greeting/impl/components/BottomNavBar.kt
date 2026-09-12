@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -140,7 +141,7 @@ private const val TabColorAnimMillis = 200
  *   gesture bar while the 66dp content stays above it (single inset, no gap)
  * - Micro-pill active state highlight with smooth color transitions
  * - 1px subtle top border line (CSS border token)
- * - 48dp touch target with accessibility content descriptions
+ * - 54dp pill touch target with accessibility content descriptions
  *
  * @param content renders the page for a given tab (hosted above the bar)
  */
@@ -290,10 +291,17 @@ private fun SwipeableTabPages(
     // While a gesture is active, rendering follows this value directly
     // (the gesture scope cannot call suspending Animatable APIs).
     var dragPos by remember { mutableStateOf(0f) }
+    // Index targeted by the last settle animation that was started. Guards
+    // against a host-state echo: when a gesture settle calls onTabChange, the
+    // host state change restarts the LaunchedEffect below; without this guard
+    // it would cancel the in-flight animation and restart it at zero velocity,
+    // dropping the fling's velocity continuity.
+    var settleTarget by remember { mutableIntStateOf(currentIndex) }
 
     // Follow external tab changes (tab bar taps) with a slide.
     LaunchedEffect(currentIndex) {
-        if (!isDragging) {
+        if (!isDragging && settleTarget != currentIndex) {
+            settleTarget = currentIndex
             pagePosition.animateTo(
                 targetValue = currentIndex.toFloat(),
                 animationSpec = tween(durationMillis = TabSwipeAnimMillis, easing = TabSwipeEasing)
@@ -373,6 +381,11 @@ private fun SwipeableTabPages(
                         }
                     }
                     val releasePos = dragPos
+                    // Record the settle target BEFORE notifying the host: the
+                    // resulting tab change restarts the LaunchedEffect above,
+                    // which must see this value and skip, otherwise it would
+                    // cancel the fling below and restart it at zero velocity.
+                    settleTarget = target
                     scope.launch {
                         // Hand rendering back to the animation system without
                         // a visual jump: snap to the release position first.

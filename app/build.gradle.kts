@@ -11,7 +11,7 @@ android {
   compileSdk { version = release(37) }
 
   defaultConfig {
-    applicationId = "com.aistudio.minimalhello.mvwxkp"
+    applicationId = "com.example"
     minSdk = 24
     targetSdk = 37
     versionCode = 1

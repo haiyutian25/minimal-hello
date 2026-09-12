@@ -322,7 +322,12 @@ fun SplashScreen(
                                 modifier = Modifier
                                     .size(6.dp)
                                     .clip(CircleShape)
-                                    .background(if (isTypingComplete) currentTheme.primary else Color(0xFF22C55E))
+                                    // Token-purist status dot: typing = dimmed accent,
+                                    // complete = solid accent (no off-palette green).
+                                    .background(
+                                        if (isTypingComplete) currentTheme.primary
+                                        else currentTheme.primary.copy(alpha = 0.45f)
+                                    )
                             )
                             Text(
                                 text = if (phraseIndex == phrases.lastIndex) stringResource(R.string.splash_ready) else stringResource(R.string.splash_exec),

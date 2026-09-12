@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -130,13 +131,21 @@ fun SidebarDrawer(
     // While a gesture is active, rendering follows this fraction directly
     // (the gesture scope cannot call suspending Animatable APIs).
     var dragFraction by remember { mutableStateOf(0f) }
+    // Target of the last settle animation that was started. Guards against a
+    // host-state echo: when a gesture settle calls onOpen/onClose, the host
+    // state change restarts the LaunchedEffect below; without this guard it
+    // would cancel the in-flight animation and restart it at zero velocity,
+    // dropping the fling's velocity continuity.
+    var settleTarget by remember { mutableFloatStateOf(0f) }
 
     // Follow external state changes (top-bar toggle, back button, ...) unless
     // a user gesture is currently driving the drawer.
     LaunchedEffect(isOpen) {
-        if (!isDragging) {
+        val target = if (isOpen) 1f else 0f
+        if (!isDragging && settleTarget != target) {
+            settleTarget = target
             progress.animateTo(
-                targetValue = if (isOpen) 1f else 0f,
+                targetValue = target,
                 animationSpec = tween(durationMillis = SidebarDrawerAnimMillis, easing = SidebarDrawerEasing)
             )
         }
@@ -208,6 +217,11 @@ fun SidebarDrawer(
                             else -> if (dragFraction >= 0.5f) 1f else 0f
                         }
                         val releaseFraction = dragFraction
+                        // Record the settle target BEFORE notifying the host: the
+                        // resulting state change restarts the LaunchedEffect above,
+                        // which must see this value and skip, otherwise it would
+                        // cancel the fling below and restart it at zero velocity.
+                        settleTarget = target
                         scope.launch {
                             // Hand rendering back to the animation system without
                             // a visual jump: snap to the release position first.

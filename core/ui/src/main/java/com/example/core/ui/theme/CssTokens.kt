@@ -6,6 +6,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 
 /**
  * Production-grade CSS Variables model with Editorial Aesthetic tokens:
@@ -70,10 +71,12 @@ fun Color.toHex(): String {
     val red = (this.red * 255).toInt()
     val green = (this.green * 255).toInt()
     val blue = (this.blue * 255).toInt()
+    // Locale.ROOT pins ASCII digits: digit-localizing locales (e.g. ar, fa)
+    // would otherwise emit non-ASCII digits and corrupt the exported CSS hex.
     return if (alpha == 255) {
-        String.format("%02X%02X%02X", red, green, blue)
+        String.format(Locale.ROOT, "%02X%02X%02X", red, green, blue)
     } else {
-        String.format("%02X%02X%02X%02X", red, green, blue, alpha)
+        String.format(Locale.ROOT, "%02X%02X%02X%02X", red, green, blue, alpha)
     }
 }
 
