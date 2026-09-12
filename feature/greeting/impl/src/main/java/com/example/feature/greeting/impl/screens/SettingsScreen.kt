@@ -1,6 +1,5 @@
 package com.example.feature.greeting.impl.screens
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,18 +50,25 @@ import com.example.feature.greeting.impl.components.CardButton
 
 private data class PaletteEntry(
     val family: ThemeResolver.PaletteFamily,
-    @StringRes val nameRes: Int,
-    @StringRes val subtitleRes: Int
+    val name: String,
+    val subtitle: String
 )
 
-/** Localized name/subtitle resources per palette family (presentation mapping). */
-private fun paletteStrings(familyKey: String): Pair<Int, Int> = when (familyKey) {
+/**
+ * Localized name/subtitle string resources per known palette family, keyed by
+ * [ThemeResolver.PaletteFamily.key]. Returns null for a family without a
+ * localized entry, so the caller falls back to the family's OWN identity
+ * (displayName + palette description) instead of mislabeling it with another
+ * family's strings.
+ */
+private fun paletteStrings(familyKey: String): Pair<Int, Int>? = when (familyKey) {
     "editorial" -> R.string.settings_palette_editorial_name to R.string.settings_palette_editorial_subtitle
     "geist" -> R.string.settings_palette_geist_name to R.string.settings_palette_geist_subtitle
     "linear" -> R.string.settings_palette_linear_name to R.string.settings_palette_linear_subtitle
     "shadcn" -> R.string.settings_palette_shadcn_name to R.string.settings_palette_shadcn_subtitle
     "notion" -> R.string.settings_palette_notion_name to R.string.settings_palette_notion_subtitle
-    else -> R.string.settings_palette_braun_name to R.string.settings_palette_braun_subtitle
+    "dieter-rams" -> R.string.settings_palette_braun_name to R.string.settings_palette_braun_subtitle
+    else -> null
 }
 
 @Composable
@@ -77,10 +83,14 @@ fun SettingsScreen(
     val currentFamilyKey = ThemeResolver.familyOf(currentTheme.themeId)
 
     // Family order and variants come from ThemeResolver.families; this screen
-    // only contributes the localized name/subtitle strings.
+    // contributes localized name/subtitle strings where a family has them.
     val paletteList = ThemeResolver.families.map { family ->
-        val (nameRes, subtitleRes) = paletteStrings(family.key)
-        PaletteEntry(family, nameRes, subtitleRes)
+        val strings = paletteStrings(family.key)
+        PaletteEntry(
+            family = family,
+            name = strings?.let { stringResource(it.first) } ?: family.displayName,
+            subtitle = strings?.let { stringResource(it.second) } ?: family.light.description,
+        )
     }
 
     Column(
@@ -206,13 +216,13 @@ fun SettingsScreen(
 
                             Column {
                                 Text(
-                                    text = stringResource(entry.nameRes),
+                                    text = entry.name,
                                     fontSize = 13.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = currentTheme.foreground
                                 )
                                 Text(
-                                    text = stringResource(entry.subtitleRes),
+                                    text = entry.subtitle,
                                     fontSize = 11.sp,
                                     color = currentTheme.mutedForeground
                                 )

@@ -414,7 +414,7 @@ gradle :app:testDebugUnitTest     # 单元测试 + 截图测试
 
 1. **网络层为占位**：`core:network` 栈已就绪（Retrofit + kotlinx.serialization + Hilt），但 baseUrl 是 `https://api.example.com/` 占位，无真实端点；`fetchRemoteHeroQuotes()` 目前只会走失败降级路径。
 2. **Room 空转**：`core:database` 仅为满足 Room 至少一个实体的要求保留 legacy 表，无 DAO；短期不接结构化数据时可考虑整体摘除以省 KSP 与包体积。
-3. **家族兜底分支**：`ThemeResolver.familyDisplayNameOf` 的 `else -> "Braun"` 兜底意味着新增家族必须同步加分支（家族目录已集中于 `families` + `familyDisplayNameOf` 两处）。
+3. **家族文案为可选本地化**：设置页族名/副标题经 `SettingsScreen.paletteStrings` 按家族 key 查本地化资源；未配置的新家族自动回退到该家族自身的 `displayName` + `description`（英文），不会错标为其它家族；需要本地化时补一对字符串资源即可。
 4. **截图基准**：`tokens.png` 基准图需用 `-Proborazzi.test.record=true` 生成后入库，否则 `testDebugUnitTest` 校验失败。
 5. **debug 密钥库**：`debug.keystore` 被 gitignore，新环境需按 README 用 keytool 生成。
 6. **release 签名依赖环境**：`KEYSTORE_PATH` / `STORE_PASSWORD` / `KEY_PASSWORD` 三个环境变量（或根目录 `my-upload-key.jks`）必须存在，否则 `assembleRelease` 失败；CI/新机器需先注入。
