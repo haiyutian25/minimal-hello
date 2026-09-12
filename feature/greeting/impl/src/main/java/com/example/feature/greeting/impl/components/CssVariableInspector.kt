@@ -1,11 +1,5 @@
 package com.example.feature.greeting.impl.components
 
-import com.example.core.ui.util.copyToClipboard
-
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -51,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -116,13 +109,12 @@ fun CssVariableInspectorSheet(
     currentTheme: CssVariables,
     onDismiss: () -> Unit,
     onCustomPrimarySelected: (Color) -> Unit,
+    onCopyCss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isCopied by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) } // 0: CSS Code, 1: Variable Swatches
-    val copiedToast = stringResource(R.string.inspector_copied_toast)
 
     BottomSheet(
         onDismiss = onDismiss,
@@ -229,12 +221,12 @@ fun CssVariableInspectorSheet(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Copy Action Button
+                // Copy Action Button: clipboard write + toast leave via
+                // onCopyCss (UDF); only the check-icon flip stays local.
                 Button(
                     onClick = {
-                        context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
+                        onCopyCss()
                         isCopied = true
-                        Toast.makeText(context, copiedToast, Toast.LENGTH_SHORT).show()
                         scope.launch {
                             delay(2500)
                             isCopied = false

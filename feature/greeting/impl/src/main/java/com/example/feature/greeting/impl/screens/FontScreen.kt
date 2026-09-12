@@ -53,6 +53,7 @@ import com.example.core.data.model.PresetFontCatalog
 import com.example.core.ui.theme.CssVariables
 import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -586,9 +587,9 @@ private fun FontRowDivider(currentTheme: CssVariables) {
     )
 }
 
-/** Formats a byte count as a short human-readable size label. */
+/** Formats a byte count as a short human-readable size label. Locale.ROOT pins the decimal dot (some locales render a comma). */
 private fun formatSize(bytes: Long): String = when {
-    bytes >= 1_048_576L -> "%.1f MB".format(bytes / 1_048_576f)
-    bytes >= 1024L -> "%.0f KB".format(bytes / 1024f)
+    bytes >= 1_048_576L -> "%.1f MB".format(Locale.ROOT, bytes / 1_048_576f)
+    bytes >= 1024L -> "%.0f KB".format(Locale.ROOT, bytes / 1024f)
     else -> "$bytes B"
 }

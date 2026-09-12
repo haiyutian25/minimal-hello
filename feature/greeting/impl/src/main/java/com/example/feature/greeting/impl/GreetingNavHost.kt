@@ -54,8 +54,14 @@ fun GreetingNavHost(
     val eventContext = LocalContext.current
     EventsEffect(viewModel = viewModel) { event ->
         when (event) {
-            is GreetingEvent.ShowToast ->
-                Toast.makeText(eventContext, event.messageRes, Toast.LENGTH_SHORT).show()
+            is GreetingEvent.ShowToast -> {
+                val message = if (event.formatArgs.isEmpty()) {
+                    eventContext.getString(event.messageRes)
+                } else {
+                    eventContext.getString(event.messageRes, *event.formatArgs.toTypedArray())
+                }
+                Toast.makeText(eventContext, message, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -172,6 +178,14 @@ fun GreetingNavHost(
                 onDismiss = { viewModel.trySendAction(GreetingAction.InspectorDismissed) },
                 onCustomPrimarySelected = {
                     viewModel.trySendAction(GreetingAction.PrimaryColorOverridden(it))
+                },
+                onCopyCss = {
+                    viewModel.trySendAction(
+                        GreetingAction.CopyTextToClipboard(
+                            text = state.theme.toCssString(),
+                            toastRes = R.string.inspector_copied_toast,
+                        )
+                    )
                 }
             )
         }

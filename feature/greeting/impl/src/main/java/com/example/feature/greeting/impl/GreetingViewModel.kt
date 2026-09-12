@@ -18,6 +18,7 @@ import com.example.core.data.repository.UserPreferencesRepository
 import com.example.core.ui.base.BaseViewModel
 import com.example.core.ui.theme.CssVariables
 import com.example.core.ui.theme.ThemeResolver
+import com.example.core.ui.util.copyToClipboard
 import com.example.feature.greeting.impl.components.NavigationTab
 import com.example.feature.greeting.impl.fonts.CustomFontFamilyCache
 import com.example.feature.greeting.impl.screens.AppTypographyChoice
@@ -79,8 +80,8 @@ data class GreetingState(
  * One-time events emitted by [GreetingViewModel]; consumed exactly once by the UI.
  */
 sealed interface GreetingEvent {
-    /** Show a transient toast carrying a string resource. */
-    data class ShowToast(@StringRes val messageRes: Int) : GreetingEvent
+    /** Show a transient toast carrying a string resource, formatted with [formatArgs] when present. */
+    data class ShowToast(@StringRes val messageRes: Int, val formatArgs: List<Any> = emptyList()) : GreetingEvent
 }
 
 /**
@@ -99,6 +100,17 @@ sealed interface GreetingAction {
 
     data object NextGreetingClicked : GreetingAction
     data class CustomGreetingChanged(val part1: String, val part2: String) : GreetingAction
+
+    /**
+     * User asked to copy [text] to the clipboard. The ViewModel performs the
+     * copy (via the Application context) and confirms through
+     * [GreetingEvent.ShowToast] — screens never show toasts directly.
+     */
+    data class CopyTextToClipboard(
+        val text: String,
+        @StringRes val toastRes: Int,
+        val toastArgs: List<Any> = emptyList(),
+    ) : GreetingAction
 
     data class ThemeSelected(val palette: CssVariables) : GreetingAction
     data class ColorModeChanged(val mode: ColorMode) : GreetingAction
@@ -157,7 +169,7 @@ private fun resolveTheme(
  */
 @HiltViewModel
 class GreetingViewModel @Inject constructor(
-    @ApplicationContext appContext: Context,
+    @ApplicationContext private val appContext: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val customFontRepository: CustomFontRepository,
     private val customFontFamilyCache: CustomFontFamilyCache,
@@ -240,6 +252,7 @@ class GreetingViewModel @Inject constructor(
                     )
                 }
             }
+            is GreetingAction.CopyTextToClipboard -> handleCopyTextToClipboard(action)
 
             is GreetingAction.ThemeSelected -> handleThemeSelected(action)
             is GreetingAction.ColorModeChanged -> handleColorModeChanged(action)
@@ -272,6 +285,9 @@ class GreetingViewModel @Inject constructor(
 
     /** Cycles to the next curated statement, deactivating any custom greeting. */
     private fun handleNextGreetingClicked() {
+        // heroQuotes is repository-provided; an empty list (e.g. a future
+        // remote-backed source) must not reach the modulo below.
+        if (state.heroQuotes.isEmpty()) return
         updateState {
             copy(
                 customGreeting = if (customGreeting.isActive) {
@@ -335,6 +351,13 @@ class GreetingViewModel @Inject constructor(
     private fun handleFontScaleSaved(action: GreetingAction.FontScaleSaved) {
         updateState { copy(fontScale = action.scale) }
         viewModelScope.launch { userPreferencesRepository.updateFontScale(action.scale) }
+        sendEvent(GreetingEvent.ShowToast(R.string.font_size_saved_toast))
+    }
+
+    /** Copies the requested text and confirms via the UDF toast event. */
+    private fun handleCopyTextToClipboard(action: GreetingAction.CopyTextToClipboard) {
+        appContext.copyToClipboard(action.text)
+        sendEvent(GreetingEvent.ShowToast(action.toastRes, action.toastArgs))
     }
 
     // endregion

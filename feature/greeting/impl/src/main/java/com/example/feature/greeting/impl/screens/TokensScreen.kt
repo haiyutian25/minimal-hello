@@ -1,8 +1,5 @@
 package com.example.feature.greeting.impl.screens
 
-import com.example.core.ui.util.copyToClipboard
-
-import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -65,13 +61,11 @@ private data class TokenRow(
 fun TokensScreen(
     currentTheme: CssVariables,
     onOpenInspector: () -> Unit,
+    onTokenCopy: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var interactiveCounter by remember { mutableStateOf(0) }
-
-    val tokenCopiedToastFmt = stringResource(R.string.tokens_copied_toast)
 
     val allTokens = listOf(
         TokenRow("--background", currentTheme.background, R.string.tokens_desc_background),
@@ -250,11 +244,10 @@ fun TokensScreen(
         ) {
             tokensList.forEachIndexed { index, (row, desc) ->
                 val hexValue = "#" + row.color.toHex()
+                // The clipboard write and the confirmation toast leave via
+                // onTokenCopy (UDF); the screen only forwards the intent.
                 Button(
-                    onClick = {
-                        context.copyToClipboard(hexValue, label = row.prop)
-                        Toast.makeText(context, tokenCopiedToastFmt.format(row.prop, hexValue), Toast.LENGTH_SHORT).show()
-                    },
+                    onClick = { onTokenCopy(row.prop, hexValue) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                 Row(

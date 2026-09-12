@@ -110,18 +110,43 @@ fun MainScreen(
                             onThemeSelected = { onAction(GreetingAction.ThemeSelected(it)) },
                             onTypographySelected = { onAction(GreetingAction.TypographySelected(it)) },
                             onOpenInspector = { onAction(GreetingAction.InspectorShown) },
+                            onCopyCss = {
+                                onAction(
+                                    GreetingAction.CopyTextToClipboard(
+                                        text = state.theme.toCssString(),
+                                        toastRes = R.string.canvas_css_copied_toast,
+                                    )
+                                )
+                            },
                         )
                         NavigationTab.TYPOGRAPHY -> TypeStudioScreen(
                             currentTheme = state.theme,
                             selectedTypography = state.typographyChoice,
                             onTypographyChange = {
                                 onAction(GreetingAction.TypographySelected(it))
+                            },
+                            onSpecimenCopy = { text ->
+                                onAction(
+                                    GreetingAction.CopyTextToClipboard(
+                                        text = text,
+                                        toastRes = R.string.type_studio_specimen_copied,
+                                    )
+                                )
                             }
                         )
                         NavigationTab.TOKENS -> TokensScreen(
                             currentTheme = state.theme,
                             onOpenInspector = {
                                 onAction(GreetingAction.InspectorShown)
+                            },
+                            onTokenCopy = { prop, hex ->
+                                onAction(
+                                    GreetingAction.CopyTextToClipboard(
+                                        text = hex,
+                                        toastRes = R.string.tokens_copied_toast,
+                                        toastArgs = listOf(prop, hex),
+                                    )
+                                )
                             }
                         )
                         // 4th tab is intentionally blank (settings moved to the sidebar flow)

@@ -27,7 +27,8 @@ class GreetingScreenshotTest {
       MinimalTheme(cssVars = ProductionPalettes.GeistDark) {
         TokensScreen(
           currentTheme = ProductionPalettes.GeistDark,
-          onOpenInspector = {}
+          onOpenInspector = {},
+          onTokenCopy = { _, _ -> }
         )
       }
     }

@@ -1,6 +1,5 @@
 package com.example.feature.greeting.impl.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -65,14 +63,12 @@ fun FontSizeScreen(
     onSave: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     // Scale captured on entry; pins this page's chrome so it ignores live
     // changes until the user leaves and comes back.
     val entryScale = remember { fontScale }
     // Local draft driven by the slider; committed only on Save.
     var draftScale by remember { mutableStateOf(fontScale) }
     val baseDensity = LocalDensity.current
-    val savedToast = stringResource(R.string.font_size_saved_toast)
 
     CompositionLocalProvider(
         LocalDensity provides Density(density = baseDensity.density, fontScale = entryScale)
@@ -152,12 +148,10 @@ fun FontSizeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Save: commit the draft to the app-wide font scale.
+            // Save: commit the draft to the app-wide font scale. The
+            // confirmation toast is emitted by the ViewModel (UDF event).
             Button(
-                onClick = {
-                    onSave(draftScale)
-                    Toast.makeText(context, savedToast, Toast.LENGTH_SHORT).show()
-                },
+                onClick = { onSave(draftScale) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("font_size_save_btn"),

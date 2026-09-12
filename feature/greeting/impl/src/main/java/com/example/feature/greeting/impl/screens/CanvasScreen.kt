@@ -1,6 +1,5 @@
 package com.example.feature.greeting.impl.screens
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
@@ -66,7 +65,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -88,7 +86,6 @@ import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.SegmentedControl
 import com.example.feature.greeting.impl.components.SegmentedOption
 import com.example.core.ui.theme.toHex
-import com.example.core.ui.util.copyToClipboard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -114,13 +111,11 @@ fun CanvasScreen(
     onThemeSelected: (CssVariables) -> Unit,
     onTypographySelected: (AppTypographyChoice) -> Unit,
     onOpenInspector: () -> Unit,
+    onCopyCss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
-
-    val cssCopiedToast = stringResource(R.string.canvas_css_copied_toast)
 
     var showCustomGreetingInput by remember { mutableStateOf(false) }
     var isGreetingPressed by remember { mutableStateOf(false) }
@@ -333,13 +328,20 @@ fun CanvasScreen(
             label = "caption_entrance_offset"
         )
 
-        val activeHeading = if (customGreeting.isActive) {
+        // heroQuotes/heroCaptions are repository-provided lists; if they ever
+        // come back empty (remote-backed source), fall back to the always-present
+        // custom greeting instead of crashing on the modulo.
+        val activeHeading = if (customGreeting.isActive || heroQuotes.isEmpty()) {
             Pair(customGreeting.part1, customGreeting.part2)
         } else {
             val quote = heroQuotes[greetingIndex % heroQuotes.size]
             Pair(stringResource(quote.part1Res), stringResource(quote.part2Res))
         }
-        val activeCaption = stringResource(heroCaptions[greetingIndex % heroCaptions.size])
+        val activeCaption = if (heroCaptions.isNotEmpty()) {
+            stringResource(heroCaptions[greetingIndex % heroCaptions.size])
+        } else {
+            ""
+        }
 
         val heroScale by animateFloatAsState(
             targetValue = if (isGreetingPressed) 0.985f else 1.0f,
@@ -398,12 +400,14 @@ fun CanvasScreen(
                         color = currentTheme.mutedForeground
                     )
 
-                    Text(
-                        text = "${(greetingIndex % heroQuotes.size) + 1} / ${heroQuotes.size}",
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 10.sp,
-                        color = currentTheme.mutedForeground.copy(alpha = 0.7f)
-                    )
+                    if (heroQuotes.isNotEmpty()) {
+                        Text(
+                            text = "${(greetingIndex % heroQuotes.size) + 1} / ${heroQuotes.size}",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            color = currentTheme.mutedForeground.copy(alpha = 0.7f)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -665,12 +669,13 @@ fun CanvasScreen(
                     )
                 }
 
-                // Copy snippet button with instant visual confirmation
+                // Copy snippet button with instant visual confirmation. The
+                // clipboard write and the toast leave via onCopyCss (UDF); only
+                // the transient check-icon flip stays local.
                 Button(
                     onClick = {
-                        context.copyToClipboard(currentTheme.toCssString(), label = "CSS Variables")
+                        onCopyCss()
                         isCopied = true
-                        Toast.makeText(context, cssCopiedToast, Toast.LENGTH_SHORT).show()
                         scope.launch {
                             delay(1800)
                             isCopied = false

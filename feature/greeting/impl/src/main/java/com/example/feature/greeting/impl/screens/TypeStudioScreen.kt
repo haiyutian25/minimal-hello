@@ -1,8 +1,5 @@
 package com.example.feature.greeting.impl.screens
 
-import com.example.core.ui.util.copyToClipboard
-
-import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -57,6 +53,7 @@ import com.example.feature.greeting.impl.R
 import com.example.feature.greeting.impl.components.Button
 import com.example.feature.greeting.impl.components.CardButton
 import com.example.feature.greeting.impl.components.Slider
+import java.util.Locale
 
 /**
  * TypeStudioScreen: An editorial-grade Typography Playground inspired by Apple Typography guidelines,
@@ -67,14 +64,12 @@ fun TypeStudioScreen(
     currentTheme: CssVariables,
     selectedTypography: AppTypographyChoice,
     onTypographyChange: (AppTypographyChoice) -> Unit,
+    onSpecimenCopy: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     var fontSizeSlider by remember { mutableFloatStateOf(42f) }
     var letterSpacingSlider by remember { mutableFloatStateOf(-0.5f) }
     var isItalic by remember { mutableStateOf(false) }
-
-    val specimenCopiedToast = stringResource(R.string.type_studio_specimen_copied)
 
     val samplePhrases = listOf(
         stringResource(R.string.type_studio_sample_1),
@@ -207,12 +202,10 @@ fun TypeStudioScreen(
                         color = currentTheme.mutedForeground
                     )
 
+                    // Copy the current specimen; clipboard write + toast are
+                    // handled by the ViewModel (UDF).
                     IconButton(
-                        onClick = {
-                            val textToCopy = samplePhrases[selectedPhraseIndex]
-                            context.copyToClipboard(textToCopy, label = "Typography Sample")
-                            Toast.makeText(context, specimenCopiedToast, Toast.LENGTH_SHORT).show()
-                        },
+                        onClick = { onSpecimenCopy(samplePhrases[selectedPhraseIndex]) },
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
@@ -295,7 +288,7 @@ fun TypeStudioScreen(
                     value = letterSpacingSlider,
                     onValueChange = { letterSpacingSlider = it },
                     label = stringResource(R.string.type_studio_letter_spacing),
-                    valueText = "%.1f sp".format(letterSpacingSlider),
+                    valueText = "%.1f sp".format(Locale.ROOT, letterSpacingSlider),
                     valueRange = -2.0f..4.0f,
                     currentTheme = currentTheme
                 )
