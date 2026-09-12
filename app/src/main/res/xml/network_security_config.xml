@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Explicit network security policy: HTTPS-only for every destination.
+  Cleartext HTTP is rejected even though the manifest no longer sets
+  usesCleartextTraffic (which already defaults to secure), so the policy is
+  pinned here instead of relying on defaults. Only device system CAs are
+  trusted — no user-added CAs — so installed fonts (GitHub Releases) and any
+  future API traffic cannot be intercepted by a sideloaded CA.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
