@@ -10,6 +10,7 @@ import com.example.core.data.model.PresetFont
 import com.example.core.data.model.PresetFontCatalog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -44,9 +45,13 @@ class CustomFontRepository @Inject constructor(
      * [installedFontFile] is on the hot read path (called from the ViewModel's
      * updateState and from LazyList item compositions, both on the main
      * thread), so membership must never be answered with filesystem I/O.
+     *
+     * Wrapped in [AtomicReference] so concurrent mutations from
+     * [downloadPreset], [importFont] and [deleteFont] cannot lose an update —
+     * a plain `@Volatile var` would let two read-modify-write sequences
+     * interleave and drop one side's change.
      */
-    @Volatile
-    private var installedIds: Set<String> = emptySet()
+    private val installedIds = AtomicReference<Set<String>>(emptySet())
 
     private val _downloadProgress = MutableStateFlow<Map<String, Float>>(emptyMap())
     /** fontId -> download progress in 0f..1f (present only while downloading). */
@@ -73,7 +78,7 @@ class CustomFontRepository @Inject constructor(
                 )
             }
             .sortedBy { it.displayName.lowercase() }
-        installedIds = fonts.map { it.id }.toSet()
+        installedIds.set(fonts.map { it.id }.toSet())
         fonts
     }
 
@@ -89,7 +94,7 @@ class CustomFontRepository @Inject constructor(
      */
     fun installedFontFile(fontId: String): File? {
         if (fontId.isEmpty()) return null
-        if (fontId !in installedIds) return null
+        if (fontId !in installedIds.get()) return null
         return File(fontsDir, fontId)
     }
 
@@ -117,7 +122,7 @@ class CustomFontRepository @Inject constructor(
                 partial.copyTo(target, overwrite = true)
                 partial.delete()
             }
-            installedIds = installedIds + preset.fileName
+            installedIds.updateAndGet { it + preset.fileName }
             bumpInstalled()
             // Clear the progress entry so a preset re-listed in the library (e.g.
             // after deletion) shows the download button, not a stale 100% bar.
@@ -154,7 +159,7 @@ class CustomFontRepository @Inject constructor(
                 target.delete()
                 return@withContext null
             }
-            installedIds = installedIds + target.name
+            installedIds.updateAndGet { it + target.name }
             bumpInstalled()
             target.name
         } catch (e: Exception) {
@@ -165,7 +170,7 @@ class CustomFontRepository @Inject constructor(
     /** Deletes an installed font file. */
     suspend fun deleteFont(fontId: String) = withContext(dispatcherManager.io) {
         File(fontsDir, fontId).delete()
-        installedIds = installedIds - fontId
+        installedIds.updateAndGet { it - fontId }
         bumpInstalled()
     }
 

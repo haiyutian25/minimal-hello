@@ -398,9 +398,13 @@ object CssTheme {
  * Braun (Dieter Rams) keeps its restrained, honest selected surfaces and opts
  * out of the elevated white/muted selected-highlight treatment applied to the
  * other palettes.
+ *
+ * Implemented as a direct prefix check against [ThemeResolver.Braun].key so
+ * that [CssVariables] does not take a dependency on the family-parsing logic
+ * in [ThemeResolver.familyOf].
  */
 val CssVariables.isBraun: Boolean
-    get() = ThemeResolver.familyOf(themeId) == "dieter-rams"
+    get() = themeId.startsWith(ThemeResolver.Braun.key)
 
 /**
  * Central resolution from a persisted themeId back to a concrete
@@ -411,51 +415,67 @@ object ThemeResolver {
         ProductionPalettes.AllPresets.firstOrNull { it.themeId == themeId }
             ?: ProductionPalettes.EditorialLight
 
-    /** Palette family key of a concrete themeId ("editorial-light" -> "editorial"). */
+    /**
+     * Palette family key of a concrete themeId ("editorial-light" -> "editorial").
+     *
+     * Resolved by exact themeId match against [families] rather than suffix
+     * stripping, because not every themeId is shaped as "{key}-light/-dark" —
+     * e.g. "shadcn-zinc-dark" belongs to family "shadcn" and "notion-warm-light"
+     * to "notion"; suffix stripping would yield "shadcn-zinc"/"notion-warm" and
+     * silently fall back to the Editorial palette downstream. The suffix strip
+     * is kept only as a fallback for unknown persisted ids.
+     */
     fun familyOf(themeId: String): String =
-        themeId.removeSuffix("-light").removeSuffix("-dark")
+        families.firstOrNull { it.light.themeId == themeId || it.dark.themeId == themeId }?.key
+            ?: themeId.removeSuffix("-light").removeSuffix("-dark")
 
     /**
-     * A preset palette family: its stable [key] plus the light/dark variants.
+     * A preset palette family: its stable [key], user-facing [displayName]
+     * plus the light/dark variants.
+     *
      * Single source of truth for family pickers (canvas quick-switcher,
-     * settings palette list) — adding a family is one entry in [families]
-     * plus one branch in [familyDisplayNameOf].
+     * settings palette list) — adding a family is one entry in [families].
      */
     data class PaletteFamily(
         val key: String,
+        val displayName: String,
         val light: CssVariables,
         val dark: CssVariables,
     ) {
-        /** User-facing family name ("editorial" -> "Editorial"). */
-        val displayName: String get() = familyDisplayNameOf(key)
-
         /** The variant matching [isDark]. */
         fun variant(isDark: Boolean): CssVariables = if (isDark) dark else light
     }
 
+    /**
+     * The Braun (Dieter Rams) family, kept as a named constant so callers that
+     * need to branch on Braun (e.g. the selected-surface override in
+     * [isBraun]) can reference its key without hard-coding the string.
+     */
+    val Braun = PaletteFamily(
+        key = "dieter-rams",
+        displayName = "Braun",
+        light = ProductionPalettes.DieterRamsLight,
+        dark = ProductionPalettes.DieterRamsDark,
+    )
+
     /** All preset families in picker display order. */
     val families: List<PaletteFamily> = listOf(
-        PaletteFamily("editorial", ProductionPalettes.EditorialLight, ProductionPalettes.EditorialDark),
-        PaletteFamily("geist", ProductionPalettes.GeistLight, ProductionPalettes.GeistDark),
-        PaletteFamily("linear", ProductionPalettes.LinearLight, ProductionPalettes.LinearDark),
-        PaletteFamily("shadcn", ProductionPalettes.ShadcnZincLight, ProductionPalettes.ShadcnZincDark),
-        PaletteFamily("notion", ProductionPalettes.NotionWarmLight, ProductionPalettes.NotionWarmDark),
-        PaletteFamily("dieter-rams", ProductionPalettes.DieterRamsLight, ProductionPalettes.DieterRamsDark),
+        PaletteFamily("editorial", "Editorial", ProductionPalettes.EditorialLight, ProductionPalettes.EditorialDark),
+        PaletteFamily("geist", "Geist", ProductionPalettes.GeistLight, ProductionPalettes.GeistDark),
+        PaletteFamily("linear", "Linear", ProductionPalettes.LinearLight, ProductionPalettes.LinearDark),
+        PaletteFamily("shadcn", "Shadcn", ProductionPalettes.ShadcnZincLight, ProductionPalettes.ShadcnZincDark),
+        PaletteFamily("notion", "Notion", ProductionPalettes.NotionWarmLight, ProductionPalettes.NotionWarmDark),
+        Braun,
     )
 
     /**
      * User-facing display name for a palette family ("editorial-light" -> "Editorial").
-     * Single source of truth — adding a family only requires one new entry here.
+     * Resolved from [families] so a new family only needs a new list entry —
+     * there is no separate when-branch to keep in sync.
      */
     fun familyDisplayNameOf(themeId: String): String =
-        when (familyOf(themeId)) {
-            "editorial" -> "Editorial"
-            "geist" -> "Geist"
-            "linear" -> "Linear"
-            "shadcn" -> "Shadcn"
-            "notion" -> "Notion"
-            else -> "Braun"
-        }
+        families.firstOrNull { it.key == familyOf(themeId) }?.displayName
+            ?: families.first().displayName
 
     /** Resolves a palette family to its light or dark variant. */
     fun resolveFamily(family: String, isDark: Boolean): CssVariables =
