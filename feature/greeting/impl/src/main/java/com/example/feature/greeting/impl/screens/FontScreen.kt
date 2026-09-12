@@ -56,13 +56,24 @@ import com.example.feature.greeting.impl.components.Button
 import kotlin.math.roundToInt
 
 /**
- * App-wide typography choice. Persisted by name; each entry carries its
- * display strings and the [FontFamily] it maps to.
+ * App-wide typography choice; the single enum for the EDITORIAL/SANS/MONO
+ * engine — used by the ViewModel state, this page, the canvas quick-switcher
+ * and the type studio (no per-screen mirror enums).
+ *
+ * Persisted by name; each entry carries its display strings and the
+ * [FontFamily] it maps to. [labelRes] is the short picker label
+ * ("Serif"/"Sans"/"Mono"); [titleRes]/[subtitleRes] describe the choice on
+ * this settings page.
  */
-enum class AppTypographyChoice(@StringRes val titleRes: Int, @StringRes val subtitleRes: Int, val font: FontFamily) {
-    EDITORIAL(R.string.settings_typography_editorial_title, R.string.settings_typography_editorial_subtitle, FontFamily.Serif),
-    SANS(R.string.settings_typography_sans_title, R.string.settings_typography_sans_subtitle, FontFamily.SansSerif),
-    MONO(R.string.settings_typography_mono_title, R.string.settings_typography_mono_subtitle, FontFamily.Monospace)
+enum class AppTypographyChoice(
+    @StringRes val titleRes: Int,
+    @StringRes val subtitleRes: Int,
+    @StringRes val labelRes: Int,
+    val font: FontFamily,
+) {
+    EDITORIAL(R.string.settings_typography_editorial_title, R.string.settings_typography_editorial_subtitle, R.string.font_label_serif, FontFamily.Serif),
+    SANS(R.string.settings_typography_sans_title, R.string.settings_typography_sans_subtitle, R.string.font_label_sans, FontFamily.SansSerif),
+    MONO(R.string.settings_typography_mono_title, R.string.settings_typography_mono_subtitle, R.string.font_label_mono, FontFamily.Monospace)
 }
 
 /** Accepted MIME types for the system font picker. */

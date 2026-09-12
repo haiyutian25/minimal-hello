@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.theme.CssTheme
 import com.example.core.ui.theme.CssVariables
+import com.example.core.ui.theme.ThemeResolver
 import com.example.core.ui.theme.toHex
 import com.example.feature.greeting.impl.R
 import kotlinx.coroutines.delay
@@ -187,7 +188,10 @@ fun CssVariableInspectorSheet(
                     modifier = Modifier.weight(1f).testTag("tab_css_code")
                 )
                 TabPill(
-                    title = stringResource(R.string.inspector_tab_tokens, currentTheme.name.split(" ")[0]),
+                    // Family display name comes from ThemeResolver (exact themeId
+                    // match) — splitting currentTheme.name on spaces only worked
+                    // because every palette name happens to start with the family name.
+                    title = stringResource(R.string.inspector_tab_tokens, ThemeResolver.familyDisplayNameOf(currentTheme.themeId)),
                     icon = Icons.Default.Tune,
                     isSelected = selectedTab == 1,
                     onClick = { selectedTab = 1 },

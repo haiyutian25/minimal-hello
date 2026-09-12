@@ -1,7 +1,6 @@
 package com.example.feature.greeting.impl.screens
 
 import android.widget.Toast
-import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
@@ -93,12 +92,6 @@ import com.example.core.ui.util.copyToClipboard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private enum class TypographyStyle(@StringRes val labelRes: Int, val font: FontFamily) {
-    EDITORIAL(R.string.font_label_serif, FontFamily.Serif),
-    SANS(R.string.font_label_sans, FontFamily.SansSerif),
-    MONO(R.string.font_label_mono, FontFamily.Monospace)
-}
-
 /**
  * Craft canvas tab: telemetry header, preset switcher, hero greeting card,
  * custom greeting editor, typography engine selector and live CSS tokens.
@@ -128,12 +121,6 @@ fun CanvasScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val cssCopiedToast = stringResource(R.string.canvas_css_copied_toast)
-
-    val selectedTypography = when (typographyChoice) {
-        AppTypographyChoice.EDITORIAL -> TypographyStyle.EDITORIAL
-        AppTypographyChoice.SANS -> TypographyStyle.SANS
-        AppTypographyChoice.MONO -> TypographyStyle.MONO
-    }
 
     var showCustomGreetingInput by remember { mutableStateOf(false) }
     var isGreetingPressed by remember { mutableStateOf(false) }
@@ -441,12 +428,8 @@ fun CanvasScreen(
                     ) {
                         Text(
                             text = part1,
-                            fontFamily = when (selectedTypography) {
-                                TypographyStyle.EDITORIAL -> FontFamily.Serif
-                                TypographyStyle.SANS -> FontFamily.SansSerif
-                                TypographyStyle.MONO -> FontFamily.Monospace
-                            },
-                            fontStyle = if (selectedTypography == TypographyStyle.EDITORIAL) FontStyle.Italic else FontStyle.Normal,
+                            fontFamily = typographyChoice.font,
+                            fontStyle = if (typographyChoice == AppTypographyChoice.EDITORIAL) FontStyle.Italic else FontStyle.Normal,
                             fontSize = 66.sp,
                             fontWeight = FontWeight.Light,
                             color = currentTheme.foreground,
@@ -459,18 +442,16 @@ fun CanvasScreen(
                         )
                         Text(
                             text = part2,
-                            fontFamily = when (selectedTypography) {
-                                TypographyStyle.EDITORIAL -> FontFamily.SansSerif
-                                TypographyStyle.SANS -> FontFamily.SansSerif
-                                TypographyStyle.MONO -> FontFamily.Monospace
-                            },
+                            // Editorial pairs the serif part1 with a bold sans part2; the
+                            // other engines render both lines in their own family.
+                            fontFamily = if (typographyChoice == AppTypographyChoice.EDITORIAL) FontFamily.SansSerif else typographyChoice.font,
                             fontSize = 66.sp,
                             fontWeight = FontWeight.Bold,
                             color = currentTheme.foreground,
                             letterSpacing = (-2.8).sp,
                             lineHeight = 58.sp,
                             modifier = Modifier
-                                .padding(start = if (selectedTypography == TypographyStyle.EDITORIAL) 18.dp else 0.dp)
+                                .padding(start = if (typographyChoice == AppTypographyChoice.EDITORIAL) 18.dp else 0.dp)
                                 .offset(y = text2EntranceOffsetY)
                                 .alpha(text2EntranceAlpha)
                                 .testTag("editorial_heading_part2")
@@ -639,24 +620,15 @@ fun CanvasScreen(
 
         // Typography engine selector (shared SegmentedControl from the library).
         SegmentedControl(
-            options = TypographyStyle.entries.map { style ->
+            options = AppTypographyChoice.entries.map { choice ->
                 SegmentedOption(
-                    id = style.name,
-                    label = stringResource(style.labelRes),
-                    font = style.font
+                    id = choice.name,
+                    label = stringResource(choice.labelRes),
+                    font = choice.font
                 )
             },
-            selectedId = selectedTypography.name,
-            onSelect = { id ->
-                val style = TypographyStyle.valueOf(id)
-                onTypographySelected(
-                    when (style) {
-                        TypographyStyle.EDITORIAL -> AppTypographyChoice.EDITORIAL
-                        TypographyStyle.SANS -> AppTypographyChoice.SANS
-                        TypographyStyle.MONO -> AppTypographyChoice.MONO
-                    }
-                )
-            },
+            selectedId = typographyChoice.name,
+            onSelect = { id -> onTypographySelected(AppTypographyChoice.valueOf(id)) },
             currentTheme = currentTheme
         )
 

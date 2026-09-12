@@ -167,11 +167,7 @@ fun TypeStudioScreen(
                             )
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                text = when (choice) {
-                                    AppTypographyChoice.EDITORIAL -> stringResource(R.string.font_label_serif)
-                                    AppTypographyChoice.SANS -> stringResource(R.string.font_label_sans)
-                                    AppTypographyChoice.MONO -> stringResource(R.string.font_label_mono)
-                                },
+                                text = stringResource(choice.labelRes),
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) currentTheme.foreground else currentTheme.mutedForeground
